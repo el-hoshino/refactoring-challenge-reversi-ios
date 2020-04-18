@@ -26,6 +26,18 @@ class GameEngineTests: XCTestCase {
         XCTAssertEqual(engine.gameBoardHeight, 8)
         XCTAssertEqual(engine.count(of: .light), 2)
         XCTAssertEqual(engine.count(of: .dark), 2)
+        XCTAssertEqual(engine.validMoves(for: .dark).toDiskPlace(), [
+            .init(x: 3, y: 2),
+            .init(x: 2, y: 3),
+            .init(x: 5, y: 4),
+            .init(x: 4, y: 5),
+        ])
+        XCTAssertEqual(engine.validMoves(for: .light).toDiskPlace(), [
+            .init(x: 4, y: 2),
+            .init(x: 5, y: 3),
+            .init(x: 2, y: 4),
+            .init(x: 3, y: 5),
+        ])
         XCTAssertEqual(engine.boardStandardOutput, """
             --------
             --------
@@ -54,4 +66,17 @@ private extension GameEngine {
         })
     }
     
+}
+
+private extension Array where Element == (x: Int, y: Int) {
+    func toDiskPlace() -> [DiskPlace] {
+        map { (element) -> DiskPlace in
+            .init(x: element.x, y: element.y)
+        }
+    }
+}
+
+private struct DiskPlace: Equatable {
+    var x: Int
+    var y: Int
 }
