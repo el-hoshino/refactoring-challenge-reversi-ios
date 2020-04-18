@@ -29,6 +29,56 @@ final class GameEngine {
     
 }
 
+extension GameEngine {
+    
+    private func flippedDiskCoordinatesByPlacingDisk(_ disk: Disk, atX x: Int, y: Int) -> [(Int, Int)] {
+        let directions = [
+            (x: -1, y: -1),
+            (x:  0, y: -1),
+            (x:  1, y: -1),
+            (x:  1, y:  0),
+            (x:  1, y:  1),
+            (x:  0, y:  1),
+            (x: -1, y:  0),
+            (x: -1, y:  1),
+        ]
+        
+        guard board[x: x, y: y] == nil else {
+            return []
+        }
+        
+        var diskCoordinates: [(Int, Int)] = []
+        
+        for direction in directions {
+            var x = x
+            var y = y
+            
+            var diskCoordinatesInLine: [(Int, Int)] = []
+            flipping: while true {
+                x += direction.x
+                y += direction.y
+                
+                switch (disk, board[x: x, y: y]) { // Uses tuples to make patterns exhaustive
+                case (.dark, .some(.dark)), (.light, .some(.light)):
+                    diskCoordinates.append(contentsOf: diskCoordinatesInLine)
+                    break flipping
+                case (.dark, .some(.light)), (.light, .some(.dark)):
+                    diskCoordinatesInLine.append((x, y))
+                case (_, .none):
+                    break flipping
+                }
+            }
+        }
+        
+        return diskCoordinates
+    }
+    
+    func canPlaceDisk(_ disk: Disk, atX x: Int, y: Int) -> Bool {
+        !flippedDiskCoordinatesByPlacingDisk(disk, atX: x, y: y).isEmpty
+    }
+    
+}
+
 extension GameEngine: GameEngineProtocol {
     
     var gameBoardWidth: Int {
@@ -50,8 +100,17 @@ extension GameEngine: GameEngineProtocol {
     }
     
     func validMoves(for side: Disk) -> [(x: Int, y: Int)] {
-        // TODO
-        return []
+        var coordinates: [(Int, Int)] = []
+        
+        for y in boardYRange {
+            for x in boardXRange {
+                if canPlaceDisk(side, atX: x, y: y) {
+                    coordinates.append((x, y))
+                }
+            }
+        }
+        
+        return coordinates
     }
     
     func saveGame() throws {
