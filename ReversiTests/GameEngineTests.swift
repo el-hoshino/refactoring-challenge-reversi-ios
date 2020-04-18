@@ -22,6 +22,10 @@ class GameEngineTests: XCTestCase {
     func testInitialBoard() {
         
         let engine = GameEngine()
+        XCTAssertEqual(engine.gameBoardWidth, 8)
+        XCTAssertEqual(engine.gameBoardHeight, 8)
+        XCTAssertEqual(engine.count(of: .light), 2)
+        XCTAssertEqual(engine.count(of: .dark), 2)
         XCTAssertEqual(engine.board.standardOutput, """
             --------
             --------
