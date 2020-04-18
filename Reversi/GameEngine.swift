@@ -8,22 +8,22 @@
 
 import Foundation
 
+/// 盤の幅（ `8` ）を表します。
+private let width = 8
+/// 盤の高さ（ `8` ）を返します。
+private let height = 8
+
+private var boardXRange: Range<Int> { 0 ..< width }
+private var boardYRange: Range<Int> { 0 ..< height }
+
+private var midXLeft: Int { midXRight - 1 }
+private var midXRight: Int { width / 2 }
+private var midYUpper: Int { midYLower - 1 }
+private var midYLower: Int { height / 2 }
+
+private var totalNumberOnBoard: Int { width * height }
+
 final class GameEngine {
-    
-    /// 盤の幅（ `8` ）を表します。
-    static let width = 8
-    /// 盤の高さ（ `8` ）を返します。
-    static let height = 8
-    
-    fileprivate static var boardXRange: Range<Int> { 0 ..< width }
-    fileprivate static var boardYRange: Range<Int> { 0 ..< height }
-    
-    static var midXLeft: Int { midXRight - 1 }
-    static var midXRight: Int { width / 2 }
-    static var midYUpper: Int { midYLower - 1 }
-    static var midYLower: Int { height / 2 }
-    
-    static var totalNumberOnBoard: Int { width * height }
     
     private(set) var board: [Disk?] = .initialize()
     
@@ -32,11 +32,11 @@ final class GameEngine {
 extension GameEngine: GameEngineProtocol {
     
     var gameBoardWidth: Int {
-        Self.width
+        width
     }
     
     var gameBoardHeight: Int {
-        Self.height
+        height
     }
     
     func count(of disk: Disk) -> Int {
@@ -66,24 +66,22 @@ extension GameEngine: GameEngineProtocol {
 
 private extension Array where Element == Disk? {
     
-    private typealias GE = GameEngine
-    
     static func initialize() -> [Element] {
-        var board: [Element] = .init(repeating: nil, count: GE.totalNumberOnBoard)
-        board[x: GE.midXLeft, y: GE.midYUpper] = .light
-        board[x: GE.midXRight, y: GE.midYUpper] = .dark
-        board[x: GE.midXLeft, y: GE.midYLower] = .dark
-        board[x: GE.midXRight, y: GE.midYLower] = .light
+        var board: [Element] = .init(repeating: nil, count: totalNumberOnBoard)
+        board[x: midXLeft, y: midYUpper] = .light
+        board[x: midXRight, y: midYUpper] = .dark
+        board[x: midXLeft, y: midYLower] = .dark
+        board[x: midXRight, y: midYLower] = .light
         return board
     }
     
     private func indexExists(x: Int, y: Int) -> Bool {
-        GE.boardXRange.contains(x) && GE.boardYRange.contains(y)
+        boardXRange.contains(x) && boardYRange.contains(y)
     }
     
     private func index(atX x: Int, y: Int) -> Int? {
         guard indexExists(x: x, y: y) else { return nil }
-        return y * GE.width + x
+        return y * width + x
     }
     
     subscript(x x: Int, y y: Int) -> Element {
