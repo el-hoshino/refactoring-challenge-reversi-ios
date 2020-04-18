@@ -42,7 +42,7 @@ private extension Array where Element == Disk? {
     
     var standardOutput: String {
         return enumerated().reduce(into: "", {
-            if $1.offset > 0 && $1.offset % GameEngine.boardXRange.count == 0 {
+            if $1.offset > 0 && $1.offset % GameEngine.width == 0 {
                 $0 += "\n\($1.element.symbol)"
             } else {
                 $0 += $1.element.symbol
