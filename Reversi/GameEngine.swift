@@ -29,6 +29,41 @@ final class GameEngine {
     
 }
 
+extension GameEngine: GameEngineProtocol {
+    
+    var gameBoardWidth: Int {
+        Self.width
+    }
+    
+    var gameBoardHeight: Int {
+        Self.height
+    }
+    
+    func count(of disk: Disk) -> Int {
+        board.reduce(0) {
+            if $1 == disk {
+                return $0 + 1
+            } else {
+                return $0
+            }
+        }
+    }
+    
+    func validMoves(for side: Disk) -> [(x: Int, y: Int)] {
+        // TODO
+        return []
+    }
+    
+    func saveGame() throws {
+        // TODO
+    }
+    
+    func loadGame() throws {
+        // TODO
+    }
+    
+}
+
 private extension Array where Element == Disk? {
     
     private typealias GE = GameEngine

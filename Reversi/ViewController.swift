@@ -25,7 +25,7 @@ class ViewController: UIViewController {
     @IBOutlet private var countLabels: [UILabel]!
     @IBOutlet private var playerActivityIndicators: [UIActivityIndicatorView]!
     
-    var gameEngine: GameEngineProtocol!
+    let gameEngine: GameEngineProtocol = GameEngine()
     
     private var turn: Disk? = .dark // `nil` if the current game is over
     
