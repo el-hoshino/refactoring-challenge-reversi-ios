@@ -1,5 +1,18 @@
 import UIKit
 
+protocol GameEngineProtocol: AnyObject {
+    
+    var gameBoardWidth: Int { get }
+    var gameBoardHeight: Int { get }
+    
+    func count(of disk: Disk) -> Int
+    func validMoves(for side: Disk) -> [(x: Int, y: Int)]
+    
+    func saveGame() throws
+    func loadGame() throws
+    
+}
+
 class ViewController: UIViewController {
     @IBOutlet private var boardView: BoardView!
     
@@ -12,6 +25,8 @@ class ViewController: UIViewController {
     @IBOutlet private var countLabels: [UILabel]!
     @IBOutlet private var playerActivityIndicators: [UIActivityIndicatorView]!
     
+    var gameEngine: GameEngineProtocol!
+    
     private var turn: Disk? = .dark // `nil` if the current game is over
     
     private var animationCanceller: Canceller?
@@ -21,6 +36,9 @@ class ViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        boardView.boardSize = .init(width: gameEngine.gameBoardWidth,
+                                    height: gameEngine.gameBoardHeight)
         
         boardView.delegate = self
         messageDiskSize = messageDiskSizeConstraint.constant
@@ -46,17 +64,7 @@ class ViewController: UIViewController {
 
 extension ViewController {
     func count(of disk: Disk) -> Int {
-        var count = 0
-        
-        for y in boardView.yRange {
-            for x in boardView.xRange {
-                if boardView.diskAt(x: x, y: y) == disk {
-                    count +=  1
-                }
-            }
-        }
-        
-        return count
+        gameEngine.count(of: disk)
     }
     
     func sideWithMoreDisks() -> Disk? {
@@ -116,17 +124,7 @@ extension ViewController {
     }
     
     func validMoves(for side: Disk) -> [(x: Int, y: Int)] {
-        var coordinates: [(Int, Int)] = []
-        
-        for y in boardView.yRange {
-            for x in boardView.xRange {
-                if canPlaceDisk(side, atX: x, y: y) {
-                    coordinates.append((x, y))
-                }
-            }
-        }
-        
-        return coordinates
+        gameEngine.validMoves(for: side)
     }
 
     /// - Parameter completion: A closure to be executed when the animation sequence ends.
@@ -366,80 +364,11 @@ extension ViewController {
     }
     
     func saveGame() throws {
-        var output: String = ""
-        output += turn.symbol
-        for side in Disk.sides {
-            output += playerControls[side.index].selectedSegmentIndex.description
-        }
-        output += "\n"
-        
-        for y in boardView.yRange {
-            for x in boardView.xRange {
-                output += boardView.diskAt(x: x, y: y).symbol
-            }
-            output += "\n"
-        }
-        
-        do {
-            try output.write(toFile: path, atomically: true, encoding: .utf8)
-        } catch let error {
-            throw FileIOError.read(path: path, cause: error)
-        }
+        try gameEngine.saveGame()
     }
     
     func loadGame() throws {
-        let input = try String(contentsOfFile: path, encoding: .utf8)
-        var lines: ArraySlice<Substring> = input.split(separator: "\n")[...]
-        
-        guard var line = lines.popFirst() else {
-            throw FileIOError.read(path: path, cause: nil)
-        }
-        
-        do { // turn
-            guard
-                let diskSymbol = line.popFirst(),
-                let disk = Optional<Disk>(symbol: diskSymbol.description)
-            else {
-                throw FileIOError.read(path: path, cause: nil)
-            }
-            turn = disk
-        }
-
-        // players
-        for side in Disk.sides {
-            guard
-                let playerSymbol = line.popFirst(),
-                let playerNumber = Int(playerSymbol.description),
-                let player = Player(rawValue: playerNumber)
-            else {
-                throw FileIOError.read(path: path, cause: nil)
-            }
-            playerControls[side.index].selectedSegmentIndex = player.rawValue
-        }
-
-        do { // board
-            guard lines.count == boardView.height else {
-                throw FileIOError.read(path: path, cause: nil)
-            }
-            
-            var y = 0
-            while let line = lines.popFirst() {
-                var x = 0
-                for character in line {
-                    let disk = Disk?(symbol: "\(character)").flatMap { $0 }
-                    boardView.setDisk(disk, atX: x, y: y, animated: false)
-                    x += 1
-                }
-                guard x == boardView.width else {
-                    throw FileIOError.read(path: path, cause: nil)
-                }
-                y += 1
-            }
-            guard y == boardView.height else {
-                throw FileIOError.read(path: path, cause: nil)
-            }
-        }
-
+        try gameEngine.loadGame()
         updateMessageViews()
         updateCountLabels()
     }

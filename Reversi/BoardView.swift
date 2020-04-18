@@ -6,34 +6,27 @@ public class BoardView: UIView {
     private var cellViews: [CellView] = []
     private var actions: [CellSelectionAction] = []
     
-    /// 盤の幅（ `8` ）を表します。
-    public let width: Int = 8
+    public struct Size {
+        var width: Int
+        var height: Int
+    }
     
-    /// 盤の高さ（ `8` ）を返します。
-    public let height: Int = 8
+    /// 盤のサイズを設定します。
+    public var boardSize: Size = .init(width: 0, height: 0) {
+        didSet {
+            setUp()
+        }
+    }
     
-    /// 盤のセルの `x` の範囲（ `0 ..< 8` ）を返します。
-    public let xRange: Range<Int>
+    var width: Int { boardSize.width }
+    var height: Int { boardSize.height }
     
-    /// 盤のセルの `y` の範囲（ `0 ..< 8` ）を返します。
-    public let yRange: Range<Int>
+    private var xRange: Range<Int> { 0 ..< width }
+    
+    private var yRange: Range<Int> { 0 ..< height }
     
     /// セルがタップされたときの挙動を移譲するためのオブジェクトです。
     public weak var delegate: BoardViewDelegate?
-    
-    override public init(frame: CGRect) {
-        xRange = 0 ..< width
-        yRange = 0 ..< height
-        super.init(frame: frame)
-        setUp()
-    }
-    
-    required public init?(coder: NSCoder) {
-        xRange = 0 ..< width
-        yRange = 0 ..< height
-        super.init(coder: coder)
-        setUp()
-    }
     
     private func setUp() {
         self.backgroundColor = UIColor(named: "DarkColor")!
@@ -53,9 +46,9 @@ public class BoardView: UIView {
             ])
         }
         
-        NSLayoutConstraint.activate([
-            cellViews[0].widthAnchor.constraint(equalTo: cellViews[0].heightAnchor),
-        ])
+        cellViews.first.map {
+            $0.widthAnchor.constraint(equalTo: $0.heightAnchor).isActive = true
+        }
         
         for y in yRange {
             for x in xRange {
