@@ -15,10 +15,8 @@ final class GameEngine {
     /// 盤の高さ（ `8` ）を返します。
     static let height = 8
     
-    /// 盤のセルの `x` の範囲（ `0 ..< 8` ）を返します。
-    static var boardXRange: Range<Int> { 0 ..< width }
-    /// 盤のセルの `y` の範囲（ `0 ..< 8` ）を返します。
-    static var boardYRange: Range<Int> { 0 ..< height }
+    fileprivate static var boardXRange: Range<Int> { 0 ..< width }
+    fileprivate static var boardYRange: Range<Int> { 0 ..< height }
     
     static var midXLeft: Int { midXRight - 1 }
     static var midXRight: Int { width / 2 }
@@ -50,7 +48,7 @@ private extension Array where Element == Disk? {
     
     private func index(atX x: Int, y: Int) -> Int? {
         guard indexExists(x: x, y: y) else { return nil }
-        return y * GE.boardXRange.count + x
+        return y * GE.width + x
     }
     
     subscript(x x: Int, y y: Int) -> Element {
