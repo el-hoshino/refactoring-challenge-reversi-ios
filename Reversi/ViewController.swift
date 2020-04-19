@@ -5,6 +5,8 @@ protocol GameEngineProtocol: AnyObject {
     var gameBoardWidth: Int { get }
     var gameBoardHeight: Int { get }
     
+    func diskAt(x: Int, y: Int) -> Disk?
+    
     func count(of disk: Disk) -> Int
     func validMoves(for side: Disk) -> [(x: Int, y: Int)]
     
@@ -89,7 +91,7 @@ extension ViewController {
             (x: -1, y:  1),
         ]
         
-        guard boardView.diskAt(x: x, y: y) == nil else {
+        guard gameEngine.diskAt(x: x, y: y) == nil else {
             return []
         }
         
@@ -104,7 +106,7 @@ extension ViewController {
                 x += direction.x
                 y += direction.y
                 
-                switch (disk, boardView.diskAt(x: x, y: y)) { // Uses tuples to make patterns exhaustive
+                switch (disk, gameEngine.diskAt(x: x, y: y)) { // Uses tuples to make patterns exhaustive
                 case (.dark, .some(.dark)), (.light, .some(.light)):
                     diskCoordinates.append(contentsOf: diskCoordinatesInLine)
                     break flipping

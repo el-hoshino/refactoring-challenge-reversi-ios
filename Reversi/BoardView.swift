@@ -116,15 +116,6 @@ public class BoardView: UIView {
         return cellViews[y * width + x]
     }
     
-    /// `x`, `y` で指定されたセルの状態を返します。
-    /// セルにディスクが置かれていない場合、 `nil` が返されます。
-    /// - Parameter x: セルの列です。
-    /// - Parameter y: セルの行です。
-    /// - Returns: セルにディスクが置かれている場合はそのディスクの値を、置かれていない場合は `nil` を返します。
-    public func diskAt(x: Int, y: Int) -> Disk? {
-        cellViewAt(x: x, y: y)?.disk
-    }
-    
     /// `x`, `y` で指定されたセルの状態を、与えられた `disk` に変更します。
     /// `animated` が `true` の場合、アニメーションが実行されます。
     /// アニメーションの完了通知は `completion` ハンドラーで受け取ることができます。

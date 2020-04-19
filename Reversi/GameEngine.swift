@@ -89,6 +89,15 @@ extension GameEngine: GameEngineProtocol {
         height
     }
     
+    /// `x`, `y` で指定されたセルの状態を返します。
+    /// セルにディスクが置かれていない場合、 `nil` が返されます。
+    /// - Parameter x: セルの列です。
+    /// - Parameter y: セルの行です。
+    /// - Returns: セルにディスクが置かれている場合はそのディスクの値を、置かれていない場合は `nil` を返します。
+    func diskAt(x: Int, y: Int) -> Disk? {
+        return board[x: x, y: y]
+    }
+    
     func count(of disk: Disk) -> Int {
         board.reduce(0) {
             if $1 == disk {
