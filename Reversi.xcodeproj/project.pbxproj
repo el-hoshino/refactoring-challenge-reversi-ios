@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		BF607B4A244C8A3D00DC5FC3 /* Player.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF607B49244C8A3D00DC5FC3 /* Player.swift */; };
 		BF6D42EC2443377700919812 /* GameEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF6D42EB2443377700919812 /* GameEngine.swift */; };
 		BF6D42EE24433F9600919812 /* GameEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF6D42ED24433F9600919812 /* GameEngineTests.swift */; };
 		D636B39F23D35043007F370F /* DiskView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D636B39E23D35043007F370F /* DiskView.swift */; };
@@ -33,6 +34,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		BF607B49244C8A3D00DC5FC3 /* Player.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Player.swift; sourceTree = "<group>"; };
 		BF6D42EB2443377700919812 /* GameEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameEngine.swift; sourceTree = "<group>"; };
 		BF6D42ED24433F9600919812 /* GameEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameEngineTests.swift; sourceTree = "<group>"; };
 		D636B39E23D35043007F370F /* DiskView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiskView.swift; sourceTree = "<group>"; };
@@ -92,6 +94,7 @@
 			isa = PBXGroup;
 			children = (
 				D642BDD723AA0B5700396732 /* Disk.swift */,
+				BF607B49244C8A3D00DC5FC3 /* Player.swift */,
 			);
 			name = DataTypes;
 			sourceTree = "<group>";
@@ -249,6 +252,7 @@
 				D642BDB823A9FE4500396732 /* ViewController.swift in Sources */,
 				D642BDDC23AA137C00396732 /* BoardView.swift in Sources */,
 				D642BDB423A9FE4500396732 /* AppDelegate.swift in Sources */,
+				BF607B4A244C8A3D00DC5FC3 /* Player.swift in Sources */,
 				D642BDB623A9FE4500396732 /* SceneDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
