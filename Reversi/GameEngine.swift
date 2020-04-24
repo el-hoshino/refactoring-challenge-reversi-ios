@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import Combine
 
 /// 盤の幅（ `8` ）を表します。
 private let width = 8
@@ -30,6 +31,8 @@ final class GameEngine {
     private(set) var turn: Disk? = .dark // `nil` if the current game is over
     
     private var playerForTurn: [Disk: Player] = [:]
+    
+    private let changed: PassthroughSubject<[(disk: Disk, x: Int, y: Int)], Never> = .init()
     
     func player(for turn: Disk) -> Player {
         return playerForTurn[turn] ?? .manual
@@ -147,6 +150,13 @@ extension GameEngine: GameEngineProtocol {
         
         nextTurn()
         
+        let changedDisks: [(disk: Disk, x: Int, y: Int)] = [(disk, x, y)] + diskCoordinates.map({ (disk, $0, $1) })
+        changed.send(changedDisks)
+        
+    }
+    
+    var changedDisks: AnyPublisher<[(disk: Disk, x: Int, y: Int)], Never> {
+        changed.eraseToAnyPublisher()
     }
     
     func count(of disk: Disk) -> Int {

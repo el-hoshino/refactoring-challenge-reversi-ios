@@ -1,4 +1,5 @@
 import UIKit
+import Combine
 
 protocol GameEngineProtocol: AnyObject {
     
@@ -7,6 +8,7 @@ protocol GameEngineProtocol: AnyObject {
     
     func diskAt(x: Int, y: Int) -> Disk?
     func placeDiskAt(x: Int, y: Int) throws
+    var changedDisks: AnyPublisher<[(disk: Disk, x: Int, y: Int)], Never> { get }
     
     func count(of disk: Disk) -> Int
     func validMoves(for side: Disk) -> [(x: Int, y: Int)]
@@ -29,6 +31,7 @@ class ViewController: UIViewController {
     @IBOutlet private var playerActivityIndicators: [UIActivityIndicatorView]!
     
     let gameEngine: GameEngineProtocol = GameEngine()
+    private var gameEngineCancellables: Set<AnyCancellable> = []
     
     private var turn: Disk? = .dark // `nil` if the current game is over
     
@@ -45,6 +48,12 @@ class ViewController: UIViewController {
         
         boardView.delegate = self
         messageDiskSize = messageDiskSizeConstraint.constant
+        
+        gameEngine.changedDisks.sink { [weak self] (changedDisks) in
+            for changed in changedDisks {
+                self?.boardView.setDisk(changed.disk, atX: changed.x, y: changed.y, animated: true)
+            }
+        }.store(in: &gameEngineCancellables)
         
         do {
             try loadGame()
