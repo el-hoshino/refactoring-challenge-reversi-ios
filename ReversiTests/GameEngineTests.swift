@@ -7,6 +7,7 @@
 //
 
 import XCTest
+import Combine
 @testable import Reversi
 
 class GameEngineTests: XCTestCase {
@@ -55,6 +56,11 @@ class GameEngineTests: XCTestCase {
     func testPlaceDisk() {
         
         let engine = GameEngine()
+        var changedDisks: [DiskCoordinate] = []
+        var observations: Set<AnyCancellable> = []
+        engine.changedDisks.sink {
+            changedDisks = $0.toDiskCoordinates()
+        }.store(in: &observations)
         
         XCTAssertThrowsError(try engine.placeDiskAt(x: 3, y: 4)) { error in
             guard let error = error as? DiskPlacementError else { XCTFail(); return }
@@ -73,6 +79,7 @@ class GameEngineTests: XCTestCase {
             --------
             """
         )
+        XCTAssertEqual(changedDisks, [])
         
         XCTAssertNoThrow(try engine.placeDiskAt(x: 2, y: 3))
         XCTAssertEqual(engine.boardStandardOutput, """
@@ -86,6 +93,10 @@ class GameEngineTests: XCTestCase {
             --------
             """
         )
+        XCTAssertEqual(changedDisks, [
+            .init(disk: .dark, x: 2, y: 3),
+            .init(disk: .dark, x: 3, y: 3),
+        ])
         
         XCTAssertNoThrow(try engine.placeDiskAt(x: 2, y: 4))
         XCTAssertEqual(engine.boardStandardOutput, """
@@ -99,6 +110,10 @@ class GameEngineTests: XCTestCase {
             --------
             """
         )
+        XCTAssertEqual(changedDisks, [
+            .init(disk: .light, x: 2, y: 4),
+            .init(disk: .light, x: 3, y: 4),
+        ])
         
     }
     
@@ -126,7 +141,21 @@ private extension Array where Element == (x: Int, y: Int) {
     }
 }
 
+private extension Array where Element == (disk: Disk, x: Int, y: Int) {
+    func toDiskCoordinates() -> [DiskCoordinate] {
+        map { (element) -> DiskCoordinate in
+            .init(disk: element.disk, x: element.x, y: element.y)
+        }
+    }
+}
+
 private struct DiskPlace: Equatable {
+    var x: Int
+    var y: Int
+}
+
+private struct DiskCoordinate: Equatable {
+    var disk: Disk
     var x: Int
     var y: Int
 }
