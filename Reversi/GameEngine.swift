@@ -27,10 +27,22 @@ final class GameEngine {
     
     private(set) var board: [Disk?] = .initialize()
     
+    private(set) var turn: Disk? = .dark // `nil` if the current game is over
+    
+    private var playerForTurn: [Disk: Player] = [:]
+    
+    func player(for turn: Disk) -> Player {
+        return playerForTurn[turn] ?? .manual
+    }
+    func setPlayer(_ player: Player, for turn: Disk) {
+        playerForTurn[turn] = player
+    }
+    
 }
 
 extension GameEngine {
     
+    // TODO: private typealise Coordinate = (x: Int, y: Int)
     private func flippedDiskCoordinatesByPlacingDisk(_ disk: Disk, atX x: Int, y: Int) -> [(Int, Int)] {
         let directions = [
             (x: -1, y: -1),
@@ -79,6 +91,24 @@ extension GameEngine {
     
 }
 
+extension GameEngine {
+    
+    private func nextTurn() {
+        guard var turn = self.turn else { return }
+
+        turn.flip()
+        
+        if validMoves(for: turn).isEmpty {
+            if validMoves(for: turn.flipped).isEmpty {
+                self.turn = nil
+            }
+        } else {
+            self.turn = turn
+        }
+    }
+    
+}
+
 extension GameEngine: GameEngineProtocol {
     
     var gameBoardWidth: Int {
@@ -96,6 +126,27 @@ extension GameEngine: GameEngineProtocol {
     /// - Returns: セルにディスクが置かれている場合はそのディスクの値を、置かれていない場合は `nil` を返します。
     func diskAt(x: Int, y: Int) -> Disk? {
         return board[x: x, y: y]
+    }
+    
+    /// - Throws: `DiskPlacementError` if the `disk` cannot be placed at (`x`, `y`).
+    func placeDiskAt(x: Int, y: Int) throws {
+        
+        guard let disk = turn else { return }
+        guard player(for: disk) == .manual else { return }
+        
+        let diskCoordinates = flippedDiskCoordinatesByPlacingDisk(disk, atX: x, y: y)
+        if diskCoordinates.isEmpty {
+            throw DiskPlacementError(disk: disk, x: x, y: y)
+        }
+        
+        board[x: x, y: y] = disk
+        
+        for coordinate in diskCoordinates {
+            board[x: coordinate.0, y: coordinate.1]?.flip()
+        }
+        
+        nextTurn()
+        
     }
     
     func count(of disk: Disk) -> Int {
