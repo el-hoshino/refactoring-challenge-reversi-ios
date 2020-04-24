@@ -52,6 +52,56 @@ class GameEngineTests: XCTestCase {
         
     }
     
+    func testPlaceDisk() {
+        
+        let engine = GameEngine()
+        
+        XCTAssertThrowsError(try engine.placeDiskAt(x: 3, y: 4)) { error in
+            guard let error = error as? DiskPlacementError else { XCTFail(); return }
+            XCTAssertEqual(error.disk, .dark)
+            XCTAssertEqual(error.x, 3)
+            XCTAssertEqual(error.y, 4)
+        }
+        XCTAssertEqual(engine.boardStandardOutput, """
+            --------
+            --------
+            --------
+            ---ox---
+            ---xo---
+            --------
+            --------
+            --------
+            """
+        )
+        
+        XCTAssertNoThrow(try engine.placeDiskAt(x: 2, y: 3))
+        XCTAssertEqual(engine.boardStandardOutput, """
+            --------
+            --------
+            --------
+            --xxx---
+            ---xo---
+            --------
+            --------
+            --------
+            """
+        )
+        
+        XCTAssertNoThrow(try engine.placeDiskAt(x: 2, y: 4))
+        XCTAssertEqual(engine.boardStandardOutput, """
+            --------
+            --------
+            --------
+            --xxx---
+            --ooo---
+            --------
+            --------
+            --------
+            """
+        )
+        
+    }
+    
 }
 
 private extension GameEngine {
