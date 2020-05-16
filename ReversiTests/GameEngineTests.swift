@@ -27,13 +27,13 @@ class GameEngineTests: XCTestCase {
         XCTAssertEqual(engine.gameBoardHeight, 8)
         XCTAssertEqual(engine.count(of: .light), 2)
         XCTAssertEqual(engine.count(of: .dark), 2)
-        XCTAssertEqual(engine.validMoves(for: .dark).toDiskPlace(), [
+        XCTAssertEqual(engine.validMoves(for: .dark).toCoordinates(), [
             .init(x: 3, y: 2),
             .init(x: 2, y: 3),
             .init(x: 5, y: 4),
             .init(x: 4, y: 5),
         ])
-        XCTAssertEqual(engine.validMoves(for: .light).toDiskPlace(), [
+        XCTAssertEqual(engine.validMoves(for: .light).toCoordinates(), [
             .init(x: 4, y: 2),
             .init(x: 5, y: 3),
             .init(x: 2, y: 4),
@@ -56,10 +56,10 @@ class GameEngineTests: XCTestCase {
     func testPlaceDisk() {
         
         let engine = GameEngine()
-        var changedDisks: [DiskCoordinate] = []
+        var changedDisks: DiskCoordinates?
         var observations: Set<AnyCancellable> = []
         engine.changedDisks.sink {
-            changedDisks = $0.toDiskCoordinates()
+            changedDisks = DiskCoordinates($0)
         }.store(in: &observations)
         
         XCTAssertThrowsError(try engine.placeDiskAt(x: 3, y: 4)) { error in
@@ -79,7 +79,7 @@ class GameEngineTests: XCTestCase {
             --------
             """
         )
-        XCTAssertEqual(changedDisks, [])
+        XCTAssertEqual(changedDisks, nil)
         
         XCTAssertNoThrow(try engine.placeDiskAt(x: 2, y: 3))
         XCTAssertEqual(engine.boardStandardOutput, """
@@ -93,10 +93,10 @@ class GameEngineTests: XCTestCase {
             --------
             """
         )
-        XCTAssertEqual(changedDisks, [
-            .init(disk: .dark, x: 2, y: 3),
-            .init(disk: .dark, x: 3, y: 3),
-        ])
+        XCTAssertEqual(changedDisks, DiskCoordinates(disk: .dark, coordinates: [
+            (x: 2, y: 3),
+            (x: 3, y: 3),
+        ]))
         
         XCTAssertNoThrow(try engine.placeDiskAt(x: 2, y: 4))
         XCTAssertEqual(engine.boardStandardOutput, """
@@ -110,10 +110,10 @@ class GameEngineTests: XCTestCase {
             --------
             """
         )
-        XCTAssertEqual(changedDisks, [
-            .init(disk: .light, x: 2, y: 4),
-            .init(disk: .light, x: 3, y: 4),
-        ])
+        XCTAssertEqual(changedDisks, DiskCoordinates(disk: .light, coordinates: [
+            (x: 2, y: 4),
+            (x: 3, y: 4),
+        ]))
         
     }
     
@@ -134,28 +134,27 @@ private extension GameEngine {
 }
 
 private extension Array where Element == (x: Int, y: Int) {
-    func toDiskPlace() -> [DiskPlace] {
-        map { (element) -> DiskPlace in
+    func toCoordinates() -> [Coordinate] {
+        map { (element) -> Coordinate in
             .init(x: element.x, y: element.y)
         }
     }
 }
 
-private extension Array where Element == (disk: Disk, x: Int, y: Int) {
-    func toDiskCoordinates() -> [DiskCoordinate] {
-        map { (element) -> DiskCoordinate in
-            .init(disk: element.disk, x: element.x, y: element.y)
-        }
-    }
-}
-
-private struct DiskPlace: Equatable {
+private struct Coordinate: Equatable {
     var x: Int
     var y: Int
 }
 
-private struct DiskCoordinate: Equatable {
+private struct DiskCoordinates: Equatable {
     var disk: Disk
-    var x: Int
-    var y: Int
+    var coordinates: [Coordinate]
+    init(_ tuple: (diskType: Disk, coordinates: [(x: Int, y: Int)])) {
+        self.disk = tuple.diskType
+        self.coordinates = tuple.coordinates.toCoordinates()
+    }
+    init(disk: Disk, coordinates: [(x: Int, y: Int)]) {
+        self.disk = disk
+        self.coordinates = coordinates.toCoordinates()
+    }
 }
