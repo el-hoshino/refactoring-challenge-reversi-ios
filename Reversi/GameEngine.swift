@@ -31,22 +31,27 @@ final class GameEngine {
     private(set) var turn: Disk? = .dark // `nil` if the current game is over
     
     private var playerForTurn: [Disk: Player] = [:]
+    private var thinkingCanceller: [Disk: Canceller] = [:]
     
+    private let thinking: PassthroughSubject<(turn: Disk, thinking: Bool), Never> = .init()
     private let changed: PassthroughSubject<(diskType: Disk, coordinates: [(x: Int, y: Int)]), Never> = .init()
     
     func player(for turn: Disk) -> Player {
         return playerForTurn[turn] ?? .manual
     }
+    
     func setPlayer(_ player: Player, for turn: Disk) {
         playerForTurn[turn] = player
+        thinkingCanceller[turn]?.cancel()
+        nextMove()
     }
-    
+        
 }
 
 extension GameEngine {
     
     // TODO: private typealise Coordinate = (x: Int, y: Int)
-    private func flippedDiskCoordinatesByPlacingDisk(_ disk: Disk, atX x: Int, y: Int) -> [(Int, Int)] {
+    private func flippedDiskCoordinatesByPlacingDisk(_ disk: Disk, at coordinate: (x: Int, y: Int)) -> [(Int, Int)] {
         let directions = [
             (x: -1, y: -1),
             (x:  0, y: -1),
@@ -57,6 +62,8 @@ extension GameEngine {
             (x: -1, y:  0),
             (x: -1, y:  1),
         ]
+        let x = coordinate.x
+        let y = coordinate.y
         
         guard board[x: x, y: y] == nil else {
             return []
@@ -88,8 +95,32 @@ extension GameEngine {
         return diskCoordinates
     }
     
-    func canPlaceDisk(_ disk: Disk, atX x: Int, y: Int) -> Bool {
-        !flippedDiskCoordinatesByPlacingDisk(disk, atX: x, y: y).isEmpty
+    func canPlaceDisk(_ disk: Disk, at coordinate: (x: Int, y: Int)) -> Bool {
+        !flippedDiskCoordinatesByPlacingDisk(disk, at: coordinate).isEmpty
+    }
+    
+}
+
+extension GameEngine {
+    
+    private func placeDisk(_ disk: Disk, at coordinate: (x: Int, y: Int)) throws {
+        
+        let diskCoordinates = flippedDiskCoordinatesByPlacingDisk(disk, at: coordinate)
+        if diskCoordinates.isEmpty {
+            throw DiskPlacementError(disk: disk, x: coordinate.x, y: coordinate.y)
+        }
+        
+        board[x: coordinate.x, y: coordinate.y] = disk
+        
+        for coordinate in diskCoordinates {
+            board[x: coordinate.0, y: coordinate.1]?.flip()
+        }
+        
+        nextTurn()
+        
+        let changedDisks: (diskType: Disk, coordinates: [(x: Int, y: Int)]) = (disk, [coordinate] + diskCoordinates)
+        changed.send(changedDisks)
+        
     }
     
 }
@@ -122,6 +153,10 @@ extension GameEngine: GameEngineProtocol {
         height
     }
     
+    func set(_ turn: Disk, to player: Player) {
+        setPlayer(player, for: turn)
+    }
+    
     /// `x`, `y` で指定されたセルの状態を返します。
     /// セルにディスクが置かれていない場合、 `nil` が返されます。
     /// - Parameter x: セルの列です。
@@ -137,22 +172,39 @@ extension GameEngine: GameEngineProtocol {
         guard let disk = turn else { return }
         guard player(for: disk) == .manual else { return }
         
-        let diskCoordinates = flippedDiskCoordinatesByPlacingDisk(disk, atX: x, y: y)
-        if diskCoordinates.isEmpty {
-            throw DiskPlacementError(disk: disk, x: x, y: y)
+        try placeDisk(disk, at: (x, y))
+        
+    }
+    
+    /// 次のターンがコンピューターなら自動で次のセルを置く
+    func nextMove() {
+        
+        guard let turn = self.turn else { preconditionFailure() }
+        guard player(for: turn) == .computer else { return }
+        
+        let (x, y) = validMoves(for: turn).randomElement()!
+        
+        thinking.send((turn, true))
+        
+        let cleanUp: () -> Void = { [weak self] in
+            guard let self = self else { return }
+            self.thinking.send((turn, false))
+            self.thinkingCanceller[turn] = nil
         }
+        let canceller = Canceller(cleanUp)
+        thinkingCanceller[turn] = canceller
         
-        board[x: x, y: y] = disk
+        Thread.sleep(forTimeInterval: 2)
+
+        if canceller.isCancelled { return }
+        cleanUp()
         
-        for coordinate in diskCoordinates {
-            board[x: coordinate.0, y: coordinate.1]?.flip()
-        }
+        try! placeDisk(turn, at: (x, y))
         
-        nextTurn()
-        
-        let changedDisks: (diskType: Disk, coordinates: [(x: Int, y: Int)]) = (disk, [(x, y)] + diskCoordinates)
-        changed.send(changedDisks)
-        
+    }
+    
+    var isThinking: AnyPublisher<(turn: Disk, thinking: Bool), Never> {
+        return thinking.eraseToAnyPublisher()
     }
     
     var changedDisks: AnyPublisher<(diskType: Disk, coordinates: [(x: Int, y: Int)]), Never> {
@@ -174,7 +226,7 @@ extension GameEngine: GameEngineProtocol {
         
         for y in boardYRange {
             for x in boardXRange {
-                if canPlaceDisk(side, atX: x, y: y) {
+                if canPlaceDisk(side, at: (x, y)) {
                     coordinates.append((x, y))
                 }
             }

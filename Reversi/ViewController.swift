@@ -6,8 +6,12 @@ protocol GameEngineProtocol: AnyObject {
     var gameBoardWidth: Int { get }
     var gameBoardHeight: Int { get }
     
+    func set(_ turn: Disk, to player: Player)
+    
     func diskAt(x: Int, y: Int) -> Disk?
     func placeDiskAt(x: Int, y: Int) throws
+    func nextMove()
+    var isThinking: AnyPublisher<(turn: Disk, thinking: Bool), Never> { get }
     var changedDisks: AnyPublisher<(diskType: Disk, coordinates: [(x: Int, y: Int)]), Never> { get }
     
     func count(of disk: Disk) -> Int
@@ -49,9 +53,17 @@ class ViewController: UIViewController {
         boardView.delegate = self
         messageDiskSize = messageDiskSizeConstraint.constant
         
+        gameEngine.isThinking.sink { [weak self] (isThinking) in
+            let indicator = self?.playerActivityIndicators[isThinking.turn.index]
+            if isThinking.thinking {
+                indicator?.startAnimating()
+            } else {
+                indicator?.stopAnimating()
+            }
+        }.store(in: &gameEngineCancellables)
         gameEngine.changedDisks.sink { [weak self] (changedDisks) in
             self?.changeDisks(at: changedDisks.coordinates, to: changedDisks.diskType, animated: true) { [weak self] _ in
-                self?.waitForPlayer()
+                self?.gameEngine.nextMove()
             }
         }.store(in: &gameEngineCancellables)
         
@@ -289,13 +301,8 @@ extension ViewController {
         
         try? saveGame()
         
-        if let canceller = playerCancellers[side] {
-            canceller.cancel()
-        }
-        
-        if !isAnimating, side == turn, case .computer = Player(rawValue: sender.selectedSegmentIndex)! {
-            playTurnOfComputer()
-        }
+        let player = Player(rawValue: sender.selectedSegmentIndex)!
+        gameEngine.set(side, to: player)
     }
 }
 
