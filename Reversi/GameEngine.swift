@@ -103,30 +103,6 @@ extension GameEngine {
 
 extension GameEngine {
     
-    private func placeDisk(_ disk: Disk, at coordinate: (x: Int, y: Int)) throws {
-        
-        let diskCoordinates = flippedDiskCoordinatesByPlacingDisk(disk, at: coordinate)
-        if diskCoordinates.isEmpty {
-            throw DiskPlacementError(disk: disk, x: coordinate.x, y: coordinate.y)
-        }
-        
-        board[x: coordinate.x, y: coordinate.y] = disk
-        
-        for coordinate in diskCoordinates {
-            board[x: coordinate.0, y: coordinate.1]?.flip()
-        }
-        
-        toggleTurn()
-        
-        let changedDisks: (diskType: Disk, coordinates: [(x: Int, y: Int)]) = (disk, [coordinate] + diskCoordinates)
-        changed.send(changedDisks)
-        
-    }
-    
-}
-
-extension GameEngine {
-    
     private func validMoves(for side: Disk) -> [(x: Int, y: Int)] {
         var coordinates: [(Int, Int)] = []
         
@@ -153,6 +129,26 @@ extension GameEngine {
         } else {
             self.turn = turn
         }
+    }
+    
+    private func placeDisk(_ disk: Disk, at coordinate: (x: Int, y: Int)) throws {
+        
+        let diskCoordinates = flippedDiskCoordinatesByPlacingDisk(disk, at: coordinate)
+        if diskCoordinates.isEmpty {
+            throw DiskPlacementError(disk: disk, x: coordinate.x, y: coordinate.y)
+        }
+        
+        board[x: coordinate.x, y: coordinate.y] = disk
+        
+        for coordinate in diskCoordinates {
+            board[x: coordinate.0, y: coordinate.1]?.flip()
+        }
+        
+        toggleTurn()
+        
+        let changedDisks: (diskType: Disk, coordinates: [(x: Int, y: Int)]) = (disk, [coordinate] + diskCoordinates)
+        changed.send(changedDisks)
+        
     }
     
 }
