@@ -53,7 +53,7 @@ class ViewController: UIViewController {
         boardView.delegate = self
         messageDiskSize = messageDiskSizeConstraint.constant
         
-        gameEngine.isThinking.sink { [weak self] (isThinking) in
+        gameEngine.isThinking.sinkInMain { [weak self] (isThinking) in
             let indicator = self?.playerActivityIndicators[isThinking.turn.index]
             if isThinking.thinking {
                 indicator?.startAnimating()
@@ -61,9 +61,11 @@ class ViewController: UIViewController {
                 indicator?.stopAnimating()
             }
         }.store(in: &gameEngineCancellables)
-        gameEngine.changedDisks.sink { [weak self] (changedDisks) in
+        gameEngine.changedDisks.sinkInMain { [weak self] (changedDisks) in
             self?.changeDisks(at: changedDisks.coordinates, to: changedDisks.diskType, animated: true) { [weak self] _ in
-                self?.gameEngine.nextMove()
+                DispatchQueue.global().async {
+                    self?.gameEngine.nextMove()
+                }
             }
         }.store(in: &gameEngineCancellables)
         
@@ -302,18 +304,22 @@ extension ViewController {
         try? saveGame()
         
         let player = Player(rawValue: sender.selectedSegmentIndex)!
-        gameEngine.set(side, to: player)
+        DispatchQueue.global().async {
+            self.gameEngine.set(side, to: player)
+        }
     }
 }
 
 extension ViewController: BoardViewDelegate {
     func boardView(_ boardView: BoardView, didSelectCellAtX x: Int, y: Int) {
         if isAnimating { return }
-        do {
-            try gameEngine.placeDiskAt(x: x, y: y)
-            // TODO: Animating
-        } catch {
-            // doing nothing when an error occurs
+        DispatchQueue.global().async {
+            do {
+                try self.gameEngine.placeDiskAt(x: x, y: y)
+                // TODO: Animating
+            } catch {
+                // doing nothing when an error occurs
+            }
         }
     }
 }
@@ -409,4 +415,16 @@ extension Optional where Wrapped == Disk {
             return "-"
         }
     }
+}
+
+extension Publisher where Failure == Never {
+    
+    func sinkInMain(_ exec: @escaping (Output) -> Void) -> AnyCancellable {
+        sink { (output) in
+            DispatchQueue.main.async {
+                exec(output)
+            }
+        }
+    }
+    
 }
