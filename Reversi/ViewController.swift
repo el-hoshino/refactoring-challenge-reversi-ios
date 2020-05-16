@@ -263,14 +263,6 @@ extension ViewController {
     }
 }
 
-// MARK: Additional types
-
-struct DiskPlacementError: Error {
-    let disk: Disk
-    let x: Int
-    let y: Int
-}
-
 // MARK: File-private extensions
 
 extension Disk {
@@ -288,32 +280,6 @@ extension Disk {
         switch self {
         case .dark: return 0
         case .light: return 1
-        }
-    }
-}
-
-extension Optional where Wrapped == Disk {
-    fileprivate init?<S: StringProtocol>(symbol: S) {
-        switch symbol {
-        case "x":
-            self = .some(.dark)
-        case "o":
-            self = .some(.light)
-        case "-":
-            self = .none
-        default:
-            return nil
-        }
-    }
-    
-    var symbol: String {
-        switch self {
-        case .some(.dark):
-            return "x"
-        case .some(.light):
-            return "o"
-        case .none:
-            return "-"
         }
     }
 }
