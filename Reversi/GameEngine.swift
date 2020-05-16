@@ -26,9 +26,9 @@ private var totalNumberOnBoard: Int { width * height }
 
 final class GameEngine {
     
-    private(set) var board: [Disk?] = .initialize()
+    private let board: CurrentValueSubject<[Disk?], Never> = .init(.initialize())
     
-    private(set) var turn: Disk? = .dark // `nil` if the current game is over
+    private let turn: CurrentValueSubject<Disk?, Never> = .init(.dark) // `nil` if the current game is over
     
     private var playerForTurn: [Disk: Player] = [:]
     private var thinkingCanceller: [Disk: Canceller] = [:]
@@ -37,8 +37,8 @@ final class GameEngine {
     private let changed: PassthroughSubject<(diskType: Disk, coordinates: [(x: Int, y: Int)]), Never> = .init()
     
     private func initialize() {
-        board = .initialize()
-        turn = .dark
+        board.send(.initialize())
+        turn.send(.dark)
         playerForTurn = [:]
         thinkingCanceller = [:]
     }
@@ -72,7 +72,7 @@ extension GameEngine {
         let x = coordinate.x
         let y = coordinate.y
         
-        guard board[x: x, y: y] == nil else {
+        guard board.value[x: x, y: y] == nil else {
             return []
         }
         
@@ -87,7 +87,7 @@ extension GameEngine {
                 x += direction.x
                 y += direction.y
                 
-                switch (disk, board[x: x, y: y]) { // Uses tuples to make patterns exhaustive
+                switch (disk, board.value[x: x, y: y]) { // Uses tuples to make patterns exhaustive
                 case (.dark, .some(.dark)), (.light, .some(.light)):
                     diskCoordinates.append(contentsOf: diskCoordinatesInLine)
                     break flipping
@@ -125,16 +125,16 @@ extension GameEngine {
     }
     
     private func toggleTurn() {
-        guard var turn = self.turn else { return }
+        guard var turn = self.turn.value else { return }
 
         turn.flip()
         
         if validMoves(for: turn).isEmpty {
             if validMoves(for: turn.flipped).isEmpty {
-                self.turn = nil
+                self.turn.send(nil)
             }
         } else {
-            self.turn = turn
+            self.turn.send(turn)
         }
     }
     
@@ -145,10 +145,10 @@ extension GameEngine {
             throw DiskPlacementError(disk: disk, x: coordinate.x, y: coordinate.y)
         }
         
-        board[x: coordinate.x, y: coordinate.y] = disk
+        board.value[x: coordinate.x, y: coordinate.y] = disk
         
         for coordinate in diskCoordinates {
-            board[x: coordinate.0, y: coordinate.1]?.flip()
+            board.value[x: coordinate.0, y: coordinate.1]?.flip()
         }
         
         toggleTurn()
@@ -184,13 +184,13 @@ extension GameEngine: GameEngineProtocol {
     /// - Parameter y: セルの行です。
     /// - Returns: セルにディスクが置かれている場合はそのディスクの値を、置かれていない場合は `nil` を返します。
     func diskAt(x: Int, y: Int) -> Disk? {
-        return board[x: x, y: y]
+        return board.value[x: x, y: y]
     }
     
     /// - Throws: `DiskPlacementError` if the `disk` cannot be placed at (`x`, `y`).
     func placeDiskAt(x: Int, y: Int) throws {
         
-        guard let disk = turn else { return }
+        guard let disk = turn.value else { return }
         guard player(for: disk) == .manual else { return }
         
         try placeDisk(disk, at: (x, y))
@@ -200,7 +200,7 @@ extension GameEngine: GameEngineProtocol {
     /// 次のターンがコンピューターなら自動で次のセルを置く
     func nextMove() {
         
-        guard let turn = self.turn else { return }
+        guard let turn = self.turn.value else { return }
         guard player(for: turn) == .computer else { return }
         
         let (x, y) = validMoves(for: turn).randomElement()!
@@ -234,11 +234,11 @@ extension GameEngine: GameEngineProtocol {
     }
     
     var currentTurn: Disk? {
-        turn
+        turn.value
     }
     
     func count(of disk: Disk) -> Int {
-        board.reduce(0) {
+        board.value.reduce(0) {
             if $1 == disk {
                 return $0 + 1
             } else {
