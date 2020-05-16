@@ -16,8 +16,7 @@ protocol GameEngineProtocol: AnyObject {
     var isThinking: AnyPublisher<(turn: Disk, thinking: Bool), Never> { get }
     var changedDisks: AnyPublisher<(diskType: Disk, coordinates: [(x: Int, y: Int)]), Never> { get }
     
-    var winner: Disk? { get }
-    var currentTurn: AnyPublisher<Disk?, Never> { get }
+    var currentTurn: AnyPublisher<Turn, Never> { get }
     func currentCount(of disk: Disk) -> AnyPublisher<Int, Never>
     
     func saveGame() throws
@@ -167,36 +166,6 @@ extension ViewController {
         try? saveGame()
     }
     
-//    func nextTurn() {
-//        guard var turn = self.turn else { return }
-//
-//        turn.flip()
-//
-//        if validMoves(for: turn).isEmpty {
-//            if validMoves(for: turn.flipped).isEmpty {
-//                self.turn = nil
-//                updateMessageViews()
-//            } else {
-//                self.turn = turn
-//                updateMessageViews()
-//
-//                let alertController = UIAlertController(
-//                    title: "Pass",
-//                    message: "Cannot place a disk.",
-//                    preferredStyle: .alert
-//                )
-//                alertController.addAction(UIAlertAction(title: "Dismiss", style: .default) { [weak self] _ in
-//                    self?.nextTurn()
-//                })
-//                present(alertController, animated: true)
-//            }
-//        } else {
-//            self.turn = turn
-//            updateMessageViews()
-//            waitForPlayer()
-//        }
-//    }
-    
 }
 
 // MARK: Views
@@ -206,14 +175,28 @@ extension ViewController {
         countLabels[side.index].text = "\(count)"
     }
     
-    func updateMessageViews(accordingTo turn: Disk?) {
+    func updateMessageViews(accordingTo turn: Turn) {
         switch turn {
-        case .some(let side):
+        case .validTurn(let side):
             messageDiskSizeConstraint.constant = messageDiskSize
             messageDiskView.disk = side
             messageLabel.text = "'s turn"
-        case .none:
-            if let winner = gameEngine.winner {
+            
+        case .skippingTurn:
+            let alertController = UIAlertController(
+                title: "Pass",
+                message: "Cannot place a disk.",
+                preferredStyle: .alert
+            )
+            alertController.addAction(UIAlertAction(title: "Dismiss", style: .default) { [weak self] _ in
+                DispatchQueue.global().async {
+                    self?.gameEngine.nextMove()
+                }
+            })
+            present(alertController, animated: true)
+            
+        case .finished(winner: let winner):
+            if let winner = winner {
                 messageDiskSizeConstraint.constant = messageDiskSize
                 messageDiskView.disk = winner
                 messageLabel.text = " won"

@@ -28,7 +28,7 @@ final class GameEngine {
     
     private let board: CurrentValueSubject<[Disk?], Never> = .init(.initialize())
     
-    private let turn: CurrentValueSubject<Disk?, Never> = .init(.dark) // `nil` if the current game is over
+    private let turn: CurrentValueSubject<Turn, Never> = .init(.validTurn(.dark))
     
     private var playerForTurn: [Disk: Player] = [:]
     private var thinkingCanceller: [Disk: Canceller] = [:]
@@ -38,7 +38,7 @@ final class GameEngine {
     
     private func initialize() {
         board.send(.initialize())
-        turn.send(.dark)
+        turn.send(.validTurn(.dark))
         playerForTurn = [:]
         thinkingCanceller = [:]
     }
@@ -125,16 +125,18 @@ extension GameEngine {
     }
     
     private func toggleTurn() {
-        guard var turn = self.turn.value else { return }
+        guard case .validTurn(var turn) = self.turn.value else { return }
 
         turn.flip()
         
         if validMoves(for: turn).isEmpty {
             if validMoves(for: turn.flipped).isEmpty {
-                self.turn.send(nil)
+                self.turn.send(.finished(winner: winner))
+            } else {
+                self.turn.send(.skippingTurn(turn))
             }
         } else {
-            self.turn.send(turn)
+            self.turn.send(.validTurn(turn))
         }
     }
     
@@ -155,6 +157,30 @@ extension GameEngine {
         
         let changedDisks: (diskType: Disk, coordinates: [(x: Int, y: Int)]) = (disk, [coordinate] + diskCoordinates)
         changed.send(changedDisks)
+        
+    }
+    
+    private func placeDiskAutomatically(as side: Disk) {
+        
+        let (x, y) = validMoves(for: side).randomElement()!
+        
+        thinking.send((side, true))
+        
+        let cleanUp: () -> Void = { [weak self] in
+            guard let self = self else { return }
+            self.thinking.send((side, false))
+            self.thinkingCanceller[side] = nil
+        }
+        let canceller = Canceller(cleanUp)
+        thinkingCanceller[side] = canceller
+        
+        Thread.sleep(forTimeInterval: 0.1)
+//        Thread.sleep(forTimeInterval: 2)
+
+        if canceller.isCancelled { return }
+        cleanUp()
+        
+        try! placeDisk(side, at: (x, y))
         
     }
     
@@ -190,7 +216,7 @@ extension GameEngine: GameEngineProtocol {
     /// - Throws: `DiskPlacementError` if the `disk` cannot be placed at (`x`, `y`).
     func placeDiskAt(x: Int, y: Int) throws {
         
-        guard let disk = turn.value else { return }
+        guard case .validTurn(let disk) = turn.value else { return }
         guard player(for: disk) == .manual else { return }
         
         try placeDisk(disk, at: (x, y))
@@ -200,28 +226,19 @@ extension GameEngine: GameEngineProtocol {
     /// 次のターンがコンピューターなら自動で次のセルを置く
     func nextMove() {
         
-        guard let turn = self.turn.value else { return }
-        guard player(for: turn) == .computer else { return }
-        
-        let (x, y) = validMoves(for: turn).randomElement()!
-        
-        thinking.send((turn, true))
-        
-        let cleanUp: () -> Void = { [weak self] in
-            guard let self = self else { return }
-            self.thinking.send((turn, false))
-            self.thinkingCanceller[turn] = nil
+        switch turn.value {
+        case .validTurn(let side):
+            if player(for: side) == .computer {
+                placeDiskAutomatically(as: side)
+            }
+            
+        case .skippingTurn:
+            toggleTurn()
+            
+        case .finished:
+            break
+            
         }
-        let canceller = Canceller(cleanUp)
-        thinkingCanceller[turn] = canceller
-        
-        Thread.sleep(forTimeInterval: 0.1)
-//        Thread.sleep(forTimeInterval: 2)
-
-        if canceller.isCancelled { return }
-        cleanUp()
-        
-        try! placeDisk(turn, at: (x, y))
         
     }
     
@@ -245,7 +262,7 @@ extension GameEngine: GameEngineProtocol {
         
     }
     
-    var currentTurn: AnyPublisher<Disk?, Never> {
+    var currentTurn: AnyPublisher<Turn, Never> {
         turn.eraseToAnyPublisher()
     }
     
@@ -310,6 +327,20 @@ private extension Array where Element == Disk? {
             }
         }
         
+    }
+    
+}
+
+private extension Turn {
+    
+    var shouldSkip: Bool {
+        switch self {
+        case .skippingTurn:
+            return true
+            
+        case .validTurn, .finished:
+            return false
+        }
     }
     
 }
