@@ -26,14 +26,14 @@ private var totalNumberOnBoard: Int { width * height }
 
 final class GameEngine {
     
-    private let engineQueue = DispatchQueue(label: "GameEngine")
+    let engineQueue = DispatchQueue(label: "GameEngine")
     
-    private let board: CurrentValueSubject<[Disk?], Never> = .init(.initialize())
+    let board: CurrentValueSubject<[Disk?], Never> = .init(.initialize())
     
-    private let turn: CurrentValueSubject<Turn, Never> = .init(.validTurn(.dark))
+    let turn: CurrentValueSubject<Turn, Never> = .init(.validTurn(.dark))
     
-    private var playerForTurn: [Disk: Player] = [:]
-    private var thinkingCanceller: [Disk: Canceller] = [:]
+    var playerForTurn: [Disk: Player] = [:]
+    var thinkingCanceller: [Disk: Canceller] = [:]
     
     private let thinking: PassthroughSubject<(turn: Disk, thinking: Bool), Never> = .init()
     private let changed: PassthroughSubject<(diskType: Disk, coordinates: [(x: Int, y: Int)]), Never> = .init()
@@ -204,7 +204,6 @@ extension GameEngine: GameEngineProtocol {
         playerForTurn[turn] ?? .manual
     }
     
-    /// - Throws: `DiskPlacementError` if the `disk` cannot be placed at (`x`, `y`).
     func placeDiskAt(x: Int, y: Int) {
         
         engineQueue.async {
@@ -315,6 +314,10 @@ private extension Array where Element == Disk? {
         }
     }
     
+}
+
+extension Array where Element == Disk? {
+    
     func count(of disk: Disk) -> Int {
         
         reduce(0) {
@@ -328,7 +331,6 @@ private extension Array where Element == Disk? {
     }
     
 }
-
 private extension Turn {
     
     var availableTurn: Disk? {

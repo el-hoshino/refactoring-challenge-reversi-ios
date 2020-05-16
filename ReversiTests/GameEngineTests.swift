@@ -25,8 +25,8 @@ class GameEngineTests: XCTestCase {
         let engine = GameEngine()
         XCTAssertEqual(engine.gameBoardWidth, 8)
         XCTAssertEqual(engine.gameBoardHeight, 8)
-        XCTAssertEqual(engine.count(of: .light), 2)
-        XCTAssertEqual(engine.count(of: .dark), 2)
+        XCTAssertEqual(engine.currentBoard.count(of: .light), 2)
+        XCTAssertEqual(engine.currentBoard.count(of: .dark), 2)
         XCTAssertEqual(engine.validMoves(for: .dark).toCoordinates(), [
             .init(x: 3, y: 2),
             .init(x: 2, y: 3),
@@ -57,63 +57,76 @@ class GameEngineTests: XCTestCase {
         
         let engine = GameEngine()
         var changedDisks: DiskCoordinates?
+        var boardOutput: String = engine.boardStandardOutput
         var observations: Set<AnyCancellable> = []
         engine.changedDisks.sink {
+            boardOutput = engine.boardStandardOutput
             changedDisks = DiskCoordinates($0)
         }.store(in: &observations)
         
-        XCTAssertThrowsError(try engine.placeDiskAt(x: 3, y: 4)) { error in
-            guard let error = error as? DiskPlacementError else { XCTFail(); return }
-            XCTAssertEqual(error.disk, .dark)
-            XCTAssertEqual(error.x, 3)
-            XCTAssertEqual(error.y, 4)
+        let group = DispatchGroup()
+        
+        group.enter()
+        engine.placeDiskAt(x: 3, y: 4)
+        engine.engineQueue.async {
+            defer { group.leave() }
+            XCTAssertEqual(boardOutput, """
+                --------
+                --------
+                --------
+                ---ox---
+                ---xo---
+                --------
+                --------
+                --------
+                """
+            )
+            XCTAssertEqual(changedDisks, nil)
         }
-        XCTAssertEqual(engine.boardStandardOutput, """
-            --------
-            --------
-            --------
-            ---ox---
-            ---xo---
-            --------
-            --------
-            --------
-            """
-        )
-        XCTAssertEqual(changedDisks, nil)
         
-        XCTAssertNoThrow(try engine.placeDiskAt(x: 2, y: 3))
-        XCTAssertEqual(engine.boardStandardOutput, """
-            --------
-            --------
-            --------
-            --xxx---
-            ---xo---
-            --------
-            --------
-            --------
-            """
-        )
-        XCTAssertEqual(changedDisks, DiskCoordinates(disk: .dark, coordinates: [
-            (x: 2, y: 3),
-            (x: 3, y: 3),
-        ]))
+        group.enter()
+        engine.placeDiskAt(x: 2, y: 3)
+        engine.engineQueue.async {
+            defer { group.leave() }
+            XCTAssertEqual(boardOutput, """
+                --------
+                --------
+                --------
+                --xxx---
+                ---xo---
+                --------
+                --------
+                --------
+                """
+            )
+            XCTAssertEqual(changedDisks, DiskCoordinates(disk: .dark, coordinates: [
+                (x: 2, y: 3),
+                (x: 3, y: 3),
+            ]))
+        }
         
-        XCTAssertNoThrow(try engine.placeDiskAt(x: 2, y: 4))
-        XCTAssertEqual(engine.boardStandardOutput, """
-            --------
-            --------
-            --------
-            --xxx---
-            --ooo---
-            --------
-            --------
-            --------
-            """
-        )
-        XCTAssertEqual(changedDisks, DiskCoordinates(disk: .light, coordinates: [
-            (x: 2, y: 4),
-            (x: 3, y: 4),
-        ]))
+        group.enter()
+        engine.placeDiskAt(x: 2, y: 4)
+        engine.engineQueue.async {
+            defer { group.leave() }
+            XCTAssertEqual(boardOutput, """
+                --------
+                --------
+                --------
+                --xxx---
+                --ooo---
+                --------
+                --------
+                --------
+                """
+            )
+            XCTAssertEqual(changedDisks, DiskCoordinates(disk: .light, coordinates: [
+                (x: 2, y: 4),
+                (x: 3, y: 4),
+            ]))
+        }
+        
+        group.wait()
         
     }
     
@@ -122,7 +135,7 @@ class GameEngineTests: XCTestCase {
 private extension GameEngine {
     
     var boardStandardOutput: String {
-        return board.enumerated().reduce(into: "", {
+        return board.value.enumerated().reduce(into: "", {
             if $1.offset > 0 && $1.offset % gameBoardWidth == 0 {
                 $0 += "\n\($1.element.symbol)"
             } else {
@@ -158,3 +171,30 @@ private struct DiskCoordinates: Equatable {
         self.coordinates = coordinates.toCoordinates()
     }
 }
+
+private extension Optional where Wrapped == Disk {
+    init?<S: StringProtocol>(symbol: S) {
+        switch symbol {
+        case "x":
+            self = .some(.dark)
+        case "o":
+            self = .some(.light)
+        case "-":
+            self = .none
+        default:
+            return nil
+        }
+    }
+    
+    var symbol: String {
+        switch self {
+        case .some(.dark):
+            return "x"
+        case .some(.light):
+            return "o"
+        case .none:
+            return "-"
+        }
+    }
+}
+
