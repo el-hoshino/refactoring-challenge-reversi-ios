@@ -258,6 +258,10 @@ extension GameEngine: GameEngineProtocol {
         
     }
     
+    var currentBoard: [Disk?] {
+        board.value
+    }
+    
     var currentTurn: AnyPublisher<Turn, Never> {
         turn.eraseToAnyPublisher()
     }

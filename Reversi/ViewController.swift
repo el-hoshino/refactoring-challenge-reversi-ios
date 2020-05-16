@@ -17,6 +17,7 @@ protocol GameEngineProtocol: AnyObject {
     var isThinking: AnyPublisher<(turn: Disk, thinking: Bool), Never> { get }
     var changedDisks: AnyPublisher<(diskType: Disk, coordinates: [(x: Int, y: Int)]), Never> { get }
     
+    var currentBoard: [Disk?] { get }
     var currentTurn: AnyPublisher<Turn, Never> { get }
     func currentCount(of disk: Disk) -> AnyPublisher<Int, Never>
     
@@ -158,7 +159,7 @@ extension ViewController {
 extension ViewController {
     func newGame() {
         gameEngine.reset()
-        boardView.reset()
+        boardView.reset(with: gameEngine.currentBoard)
         
         for (index, playerControl) in playerControls.enumerated() {
             let side: Disk = Disk(index: index)
@@ -270,6 +271,7 @@ extension ViewController {
     
     func loadGame() throws {
         try gameEngine.loadGame()
+        boardView.reset(with: gameEngine.currentBoard)
     }
     
     enum FileIOError: Error {
