@@ -179,7 +179,7 @@ extension GameEngine: GameEngineProtocol {
     /// 次のターンがコンピューターなら自動で次のセルを置く
     func nextMove() {
         
-        guard let turn = self.turn else { preconditionFailure() }
+        guard let turn = self.turn else { return }
         guard player(for: turn) == .computer else { return }
         
         let (x, y) = validMoves(for: turn).randomElement()!
