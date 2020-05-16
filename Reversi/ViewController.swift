@@ -16,8 +16,9 @@ protocol GameEngineProtocol: AnyObject {
     var isThinking: AnyPublisher<(turn: Disk, thinking: Bool), Never> { get }
     var changedDisks: AnyPublisher<(diskType: Disk, coordinates: [(x: Int, y: Int)]), Never> { get }
     
-    var currentTurn: Disk? { get }
-    func count(of disk: Disk) -> Int
+    var winner: Disk? { get }
+    var currentTurn: AnyPublisher<Disk?, Never> { get }
+    func currentCount(of disk: Disk) -> AnyPublisher<Int, Never>
     
     func saveGame() throws
     func loadGame() throws
@@ -51,6 +52,14 @@ class ViewController: UIViewController {
         boardView.delegate = self
         messageDiskSize = messageDiskSizeConstraint.constant
         
+        gameEngine.currentTurn.sinkInMain { [weak self] (turn) in
+            self?.updateMessageViews(accordingTo: turn)
+        }.store(in: &gameEngineCancellables)
+        Disk.sides.forEach { (side) in
+            gameEngine.currentCount(of: side).receive(on: DispatchQueue.main).sink { [weak self] (count) in
+                self?.updateCountLabels(side: side, count: count)
+            }.store(in: &gameEngineCancellables)
+        }
         gameEngine.isThinking.sinkInMain { [weak self] (isThinking) in
             let indicator = self?.playerActivityIndicators[isThinking.turn.index]
             if isThinking.thinking {
@@ -90,19 +99,6 @@ class ViewController: UIViewController {
 // MARK: Reversi logics
 
 extension ViewController {
-    func count(of disk: Disk) -> Int {
-        gameEngine.count(of: disk)
-    }
-    
-    func sideWithMoreDisks() -> Disk? {
-        let darkCount = count(of: .dark)
-        let lightCount = count(of: .light)
-        if darkCount == lightCount {
-            return nil
-        } else {
-            return darkCount > lightCount ? .dark : .light
-        }
-    }
     
     func changeDisks(at coordinates: [(x: Int, y: Int)], to disk: Disk, animated: Bool, completion: ((Bool) -> Void)?) {
         
@@ -119,7 +115,6 @@ extension ViewController {
 
                 completion?(finished)
                 try? self.saveGame()
-                self.updateCountLabels()
             }
         } else {
             DispatchQueue.main.async { [weak self] in
@@ -129,7 +124,6 @@ extension ViewController {
                 }
                 completion?(true)
                 try? self.saveGame()
-                self.updateCountLabels()
             }
         }
         
@@ -169,9 +163,6 @@ extension ViewController {
         for playerControl in playerControls {
             playerControl.selectedSegmentIndex = Player.manual.rawValue
         }
-
-        updateMessageViews()
-        updateCountLabels()
         
         try? saveGame()
     }
@@ -211,20 +202,18 @@ extension ViewController {
 // MARK: Views
 
 extension ViewController {
-    func updateCountLabels() {
-        for side in Disk.sides {
-            countLabels[side.index].text = "\(count(of: side))"
-        }
+    func updateCountLabels(side: Disk, count: Int) {
+        countLabels[side.index].text = "\(count)"
     }
     
-    func updateMessageViews() {
-        switch gameEngine.currentTurn {
+    func updateMessageViews(accordingTo turn: Disk?) {
+        switch turn {
         case .some(let side):
             messageDiskSizeConstraint.constant = messageDiskSize
             messageDiskView.disk = side
             messageLabel.text = "'s turn"
         case .none:
-            if let winner = self.sideWithMoreDisks() {
+            if let winner = gameEngine.winner {
                 messageDiskSizeConstraint.constant = messageDiskSize
                 messageDiskView.disk = winner
                 messageLabel.text = " won"
@@ -296,8 +285,6 @@ extension ViewController {
     
     func loadGame() throws {
         try gameEngine.loadGame()
-        updateMessageViews()
-        updateCountLabels()
     }
     
     enum FileIOError: Error {

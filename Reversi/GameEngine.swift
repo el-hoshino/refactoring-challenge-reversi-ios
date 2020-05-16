@@ -110,7 +110,7 @@ extension GameEngine {
 
 extension GameEngine {
     
-    private func validMoves(for side: Disk) -> [(x: Int, y: Int)] {
+    func validMoves(for side: Disk) -> [(x: Int, y: Int)] {
         var coordinates: [(Int, Int)] = []
         
         for y in boardYRange {
@@ -233,18 +233,26 @@ extension GameEngine: GameEngineProtocol {
         changed.eraseToAnyPublisher()
     }
     
-    var currentTurn: Disk? {
-        turn.value
+    var winner: Disk? {
+        
+        let darkCount = board.value.count(of: .dark)
+        let lightCount = board.value.count(of: .light)
+        if darkCount == lightCount {
+            return nil
+        } else {
+            return darkCount > lightCount ? .dark : .light
+        }
+        
     }
     
-    func count(of disk: Disk) -> Int {
-        board.value.reduce(0) {
-            if $1 == disk {
-                return $0 + 1
-            } else {
-                return $0
-            }
-        }
+    var currentTurn: AnyPublisher<Disk?, Never> {
+        turn.eraseToAnyPublisher()
+    }
+    
+    func currentCount(of disk: Disk) -> AnyPublisher<Int, Never> {
+        board.map {
+            $0.count(of: disk)
+        }.eraseToAnyPublisher()
     }
     
     func saveGame() throws {
@@ -290,6 +298,18 @@ private extension Array where Element == Disk? {
             }
             self[targetIndex] = newValue
         }
+    }
+    
+    func count(of disk: Disk) -> Int {
+        
+        reduce(0) {
+            if $1 == disk {
+                return $0 + 1
+            } else {
+                return $0
+            }
+        }
+        
     }
     
 }
