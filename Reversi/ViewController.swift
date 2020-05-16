@@ -14,8 +14,8 @@ protocol GameEngineProtocol: AnyObject {
     var isThinking: AnyPublisher<(turn: Disk, thinking: Bool), Never> { get }
     var changedDisks: AnyPublisher<(diskType: Disk, coordinates: [(x: Int, y: Int)]), Never> { get }
     
+    var currentTurn: Disk? { get }
     func count(of disk: Disk) -> Int
-    func validMoves(for side: Disk) -> [(x: Int, y: Int)]
     
     func saveGame() throws
     func loadGame() throws
@@ -36,14 +36,10 @@ class ViewController: UIViewController {
     
     let gameEngine: GameEngineProtocol = GameEngine()
     private var gameEngineCancellables: Set<AnyCancellable> = []
-    
-    private var turn: Disk? = .dark // `nil` if the current game is over
-    
+        
     private var animationCanceller: Canceller?
     private var isAnimating: Bool { animationCanceller != nil }
-    
-    private var playerCancellers: [Disk: Canceller] = [:]
-    
+        
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -106,10 +102,6 @@ extension ViewController {
         }
     }
     
-    func validMoves(for side: Disk) -> [(x: Int, y: Int)] {
-        gameEngine.validMoves(for: side)
-    }
-    
     func changeDisks(at coordinates: [(x: Int, y: Int)], to disk: Disk, animated: Bool, completion: ((Bool) -> Void)?) {
         
         if animated {
@@ -169,8 +161,8 @@ extension ViewController {
 
 extension ViewController {
     func newGame() {
+        gameEngine.reset()
         boardView.reset()
-        turn = .dark
         
         for playerControl in playerControls {
             playerControl.selectedSegmentIndex = Player.manual.rawValue
@@ -182,35 +174,35 @@ extension ViewController {
         try? saveGame()
     }
     
-    func nextTurn() {
-        guard var turn = self.turn else { return }
-
-        turn.flip()
-        
-        if validMoves(for: turn).isEmpty {
-            if validMoves(for: turn.flipped).isEmpty {
-                self.turn = nil
-                updateMessageViews()
-            } else {
-                self.turn = turn
-                updateMessageViews()
-                
-                let alertController = UIAlertController(
-                    title: "Pass",
-                    message: "Cannot place a disk.",
-                    preferredStyle: .alert
-                )
-                alertController.addAction(UIAlertAction(title: "Dismiss", style: .default) { [weak self] _ in
-                    self?.nextTurn()
-                })
-                present(alertController, animated: true)
-            }
-        } else {
-            self.turn = turn
-            updateMessageViews()
+//    func nextTurn() {
+//        guard var turn = self.turn else { return }
+//
+//        turn.flip()
+//
+//        if validMoves(for: turn).isEmpty {
+//            if validMoves(for: turn.flipped).isEmpty {
+//                self.turn = nil
+//                updateMessageViews()
+//            } else {
+//                self.turn = turn
+//                updateMessageViews()
+//
+//                let alertController = UIAlertController(
+//                    title: "Pass",
+//                    message: "Cannot place a disk.",
+//                    preferredStyle: .alert
+//                )
+//                alertController.addAction(UIAlertAction(title: "Dismiss", style: .default) { [weak self] _ in
+//                    self?.nextTurn()
+//                })
+//                present(alertController, animated: true)
+//            }
+//        } else {
+//            self.turn = turn
+//            updateMessageViews()
 //            waitForPlayer()
-        }
-    }
+//        }
+//    }
     
 }
 
@@ -224,7 +216,7 @@ extension ViewController {
     }
     
     func updateMessageViews() {
-        switch turn {
+        switch gameEngine.currentTurn {
         case .some(let side):
             messageDiskSizeConstraint.constant = messageDiskSize
             messageDiskView.disk = side
@@ -254,14 +246,6 @@ extension ViewController {
         alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in })
         alertController.addAction(UIAlertAction(title: "OK", style: .default) { [weak self] _ in
             guard let self = self else { return }
-            
-            self.animationCanceller?.cancel()
-            self.animationCanceller = nil
-            
-            for side in Disk.sides {
-                self.playerCancellers[side]?.cancel()
-                self.playerCancellers.removeValue(forKey: side)
-            }
             
             self.newGame()
             DispatchQueue.global().async {

@@ -127,6 +127,20 @@ extension GameEngine {
 
 extension GameEngine {
     
+    private func validMoves(for side: Disk) -> [(x: Int, y: Int)] {
+        var coordinates: [(Int, Int)] = []
+        
+        for y in boardYRange {
+            for x in boardXRange {
+                if canPlaceDisk(side, at: (x, y)) {
+                    coordinates.append((x, y))
+                }
+            }
+        }
+        
+        return coordinates
+    }
+    
     private func nextTurn() {
         guard var turn = self.turn else { return }
 
@@ -220,20 +234,6 @@ extension GameEngine: GameEngineProtocol {
                 return $0
             }
         }
-    }
-    
-    func validMoves(for side: Disk) -> [(x: Int, y: Int)] {
-        var coordinates: [(Int, Int)] = []
-        
-        for y in boardYRange {
-            for x in boardXRange {
-                if canPlaceDisk(side, at: (x, y)) {
-                    coordinates.append((x, y))
-                }
-            }
-        }
-        
-        return coordinates
     }
     
     func saveGame() throws {
