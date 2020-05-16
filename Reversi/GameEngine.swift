@@ -43,16 +43,6 @@ final class GameEngine {
         thinkingCanceller = [:]
     }
     
-    func player(for turn: Disk) -> Player {
-        return playerForTurn[turn] ?? .manual
-    }
-    
-    func setPlayer(_ player: Player, for turn: Disk) {
-        playerForTurn[turn] = player
-        thinkingCanceller[turn]?.cancel()
-        nextMove()
-    }
-        
 }
 
 extension GameEngine {
@@ -125,7 +115,7 @@ extension GameEngine {
     }
     
     private func toggleTurn() {
-        guard case .validTurn(var turn) = self.turn.value else { return }
+        guard var turn = self.turn.value.availableTurn else { return }
 
         turn.flip()
         
@@ -200,8 +190,14 @@ extension GameEngine: GameEngineProtocol {
         initialize()
     }
     
-    func set(_ turn: Disk, to player: Player) {
-        setPlayer(player, for: turn)
+    func setPlayer(_ player: Player, for turn: Disk) {
+        thinkingCanceller[turn]?.cancel()
+        playerForTurn[turn] = player
+        nextMove()
+    }
+    
+    func getPlayer(for turn: Disk) -> Player {
+        playerForTurn[turn] ?? .manual
     }
     
     /// `x`, `y` で指定されたセルの状態を返します。
@@ -217,7 +213,7 @@ extension GameEngine: GameEngineProtocol {
     func placeDiskAt(x: Int, y: Int) throws {
         
         guard case .validTurn(let disk) = turn.value else { return }
-        guard player(for: disk) == .manual else { return }
+        guard getPlayer(for: disk) == .manual else { return }
         
         try placeDisk(disk, at: (x, y))
         
@@ -228,7 +224,7 @@ extension GameEngine: GameEngineProtocol {
         
         switch turn.value {
         case .validTurn(let side):
-            if player(for: side) == .computer {
+            if getPlayer(for: side) == .computer {
                 placeDiskAutomatically(as: side)
             }
             
@@ -333,13 +329,13 @@ private extension Array where Element == Disk? {
 
 private extension Turn {
     
-    var shouldSkip: Bool {
+    var availableTurn: Disk? {
         switch self {
-        case .skippingTurn:
-            return true
+        case .validTurn(let turn), .skippingTurn(let turn):
+            return turn
             
-        case .validTurn, .finished:
-            return false
+        case .finished:
+            return nil
         }
     }
     

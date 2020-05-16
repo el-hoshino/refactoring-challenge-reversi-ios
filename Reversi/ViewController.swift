@@ -8,7 +8,8 @@ protocol GameEngineProtocol: AnyObject {
     
     func reset()
     
-    func set(_ turn: Disk, to player: Player)
+    func setPlayer(_ player: Player, for turn: Disk)
+    func getPlayer(for turn: Disk) -> Player
     
     func diskAt(x: Int, y: Int) -> Disk?
     func placeDiskAt(x: Int, y: Int) throws
@@ -159,8 +160,9 @@ extension ViewController {
         gameEngine.reset()
         boardView.reset()
         
-        for playerControl in playerControls {
-            playerControl.selectedSegmentIndex = Player.manual.rawValue
+        for (index, playerControl) in playerControls.enumerated() {
+            let side: Disk = Disk(index: index)
+            playerControl.selectedSegmentIndex = gameEngine.getPlayer(for: side).rawValue
         }
         
         try? saveGame()
@@ -236,7 +238,7 @@ extension ViewController {
         
         let player = Player(rawValue: sender.selectedSegmentIndex)!
         DispatchQueue.global().async {
-            self.gameEngine.set(side, to: player)
+            self.gameEngine.setPlayer(player, for: side)
         }
     }
 }
