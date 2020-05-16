@@ -199,15 +199,6 @@ extension GameEngine: GameEngineProtocol {
         playerForTurn[turn] ?? .manual
     }
     
-    /// `x`, `y` で指定されたセルの状態を返します。
-    /// セルにディスクが置かれていない場合、 `nil` が返されます。
-    /// - Parameter x: セルの列です。
-    /// - Parameter y: セルの行です。
-    /// - Returns: セルにディスクが置かれている場合はそのディスクの値を、置かれていない場合は `nil` を返します。
-    func diskAt(x: Int, y: Int) -> Disk? {
-        return board.value[x: x, y: y]
-    }
-    
     /// - Throws: `DiskPlacementError` if the `disk` cannot be placed at (`x`, `y`).
     func placeDiskAt(x: Int, y: Int) throws {
         

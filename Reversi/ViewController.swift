@@ -11,7 +11,6 @@ protocol GameEngineProtocol: AnyObject {
     func setPlayer(_ player: Player, for turn: Disk)
     func getPlayer(for turn: Disk) -> Player
     
-    func diskAt(x: Int, y: Int) -> Disk?
     func placeDiskAt(x: Int, y: Int) throws
     func nextMove()
     var isThinking: AnyPublisher<(turn: Disk, thinking: Bool), Never> { get }
