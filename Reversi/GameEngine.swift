@@ -116,7 +116,7 @@ extension GameEngine {
             board[x: coordinate.0, y: coordinate.1]?.flip()
         }
         
-        nextTurn()
+        toggleTurn()
         
         let changedDisks: (diskType: Disk, coordinates: [(x: Int, y: Int)]) = (disk, [coordinate] + diskCoordinates)
         changed.send(changedDisks)
@@ -141,7 +141,7 @@ extension GameEngine {
         return coordinates
     }
     
-    private func nextTurn() {
+    private func toggleTurn() {
         guard var turn = self.turn else { return }
 
         turn.flip()
