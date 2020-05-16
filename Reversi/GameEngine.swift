@@ -32,7 +32,7 @@ final class GameEngine {
     
     private var playerForTurn: [Disk: Player] = [:]
     
-    private let changed: PassthroughSubject<[(disk: Disk, x: Int, y: Int)], Never> = .init()
+    private let changed: PassthroughSubject<(diskType: Disk, coordinates: [(x: Int, y: Int)]), Never> = .init()
     
     func player(for turn: Disk) -> Player {
         return playerForTurn[turn] ?? .manual
@@ -150,12 +150,12 @@ extension GameEngine: GameEngineProtocol {
         
         nextTurn()
         
-        let changedDisks: [(disk: Disk, x: Int, y: Int)] = [(disk, x, y)] + diskCoordinates.map({ (disk, $0, $1) })
+        let changedDisks: (diskType: Disk, coordinates: [(x: Int, y: Int)]) = (disk, [(x, y)] + diskCoordinates)
         changed.send(changedDisks)
         
     }
     
-    var changedDisks: AnyPublisher<[(disk: Disk, x: Int, y: Int)], Never> {
+    var changedDisks: AnyPublisher<(diskType: Disk, coordinates: [(x: Int, y: Int)]), Never> {
         changed.eraseToAnyPublisher()
     }
     

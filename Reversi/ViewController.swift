@@ -8,7 +8,7 @@ protocol GameEngineProtocol: AnyObject {
     
     func diskAt(x: Int, y: Int) -> Disk?
     func placeDiskAt(x: Int, y: Int) throws
-    var changedDisks: AnyPublisher<[(disk: Disk, x: Int, y: Int)], Never> { get }
+    var changedDisks: AnyPublisher<(diskType: Disk, coordinates: [(x: Int, y: Int)]), Never> { get }
     
     func count(of disk: Disk) -> Int
     func validMoves(for side: Disk) -> [(x: Int, y: Int)]
@@ -50,8 +50,8 @@ class ViewController: UIViewController {
         messageDiskSize = messageDiskSizeConstraint.constant
         
         gameEngine.changedDisks.sink { [weak self] (changedDisks) in
-            for changed in changedDisks {
-                self?.boardView.setDisk(changed.disk, atX: changed.x, y: changed.y, animated: true)
+            self?.changeDisks(at: changedDisks.coordinates, to: changedDisks.diskType, animated: true) { [weak self] _ in
+                self?.waitForPlayer()
             }
         }.store(in: &gameEngineCancellables)
         
@@ -134,24 +134,15 @@ extension ViewController {
     func validMoves(for side: Disk) -> [(x: Int, y: Int)] {
         gameEngine.validMoves(for: side)
     }
-
-    /// - Parameter completion: A closure to be executed when the animation sequence ends.
-    ///     This closure has no return value and takes a single Boolean argument that indicates
-    ///     whether or not the animations actually finished before the completion handler was called.
-    ///     If `animated` is `false`,  this closure is performed at the beginning of the next run loop cycle. This parameter may be `nil`.
-    /// - Throws: `DiskPlacementError` if the `disk` cannot be placed at (`x`, `y`).
-    func placeDisk(_ disk: Disk, atX x: Int, y: Int, animated isAnimated: Bool, completion: ((Bool) -> Void)? = nil) throws {
-        let diskCoordinates = flippedDiskCoordinatesByPlacingDisk(disk, atX: x, y: y)
-        if diskCoordinates.isEmpty {
-            throw DiskPlacementError(disk: disk, x: x, y: y)
-        }
+    
+    func changeDisks(at coordinates: [(x: Int, y: Int)], to disk: Disk, animated: Bool, completion: ((Bool) -> Void)?) {
         
-        if isAnimated {
+        if animated {
             let cleanUp: () -> Void = { [weak self] in
                 self?.animationCanceller = nil
             }
             animationCanceller = Canceller(cleanUp)
-            animateSettingDisks(at: [(x, y)] + diskCoordinates, to: disk) { [weak self] finished in
+            animateSettingDisks(at: coordinates, to: disk) { [weak self] finished in
                 guard let self = self else { return }
                 guard let canceller = self.animationCanceller else { return }
                 if canceller.isCancelled { return }
@@ -164,8 +155,7 @@ extension ViewController {
         } else {
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
-                self.boardView.setDisk(disk, atX: x, y: y, animated: false)
-                for (x, y) in diskCoordinates {
+                for (x, y) in coordinates {
                     self.boardView.setDisk(disk, atX: x, y: y, animated: false)
                 }
                 completion?(true)
@@ -173,6 +163,7 @@ extension ViewController {
                 self.updateCountLabels()
             }
         }
+        
     }
     
     private func animateSettingDisks<C: Collection>(at coordinates: C, to disk: Disk, completion: @escaping (Bool) -> Void)
@@ -273,9 +264,7 @@ extension ViewController {
             if canceller.isCancelled { return }
             cleanUp()
             
-            try! self.placeDisk(turn, atX: x, y: y, animated: true) { [weak self] _ in
-                self?.nextTurn()
-            }
+            try! self.gameEngine.placeDiskAt(x: x, y: y)
         }
         
         playerCancellers[turn] = canceller
