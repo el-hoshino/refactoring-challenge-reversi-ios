@@ -53,15 +53,15 @@ class ViewController: UIViewController {
         boardView.delegate = self
         messageDiskSize = messageDiskSizeConstraint.constant
         
-        gameEngine.currentTurn.sinkInMain { [weak self] (turn) in
+        gameEngine.currentTurn.sink(in: .main) { [weak self] (turn) in
             self?.updateMessageViews(accordingTo: turn)
         }.store(in: &gameEngineCancellables)
         Disk.sides.forEach { (side) in
-            gameEngine.currentCount(of: side).receive(on: DispatchQueue.main).sink { [weak self] (count) in
+            gameEngine.currentCount(of: side).sink(in: .main) { [weak self] (count) in
                 self?.updateCountLabels(side: side, count: count)
             }.store(in: &gameEngineCancellables)
         }
-        gameEngine.isThinking.sinkInMain { [weak self] (isThinking) in
+        gameEngine.isThinking.sink(in: .main) { [weak self] (isThinking) in
             let indicator = self?.playerActivityIndicators[isThinking.turn.index]
             if isThinking.thinking {
                 indicator?.startAnimating()
@@ -69,7 +69,7 @@ class ViewController: UIViewController {
                 indicator?.stopAnimating()
             }
         }.store(in: &gameEngineCancellables)
-        gameEngine.changedDisks.sinkInMain { [weak self] (changedDisks) in
+        gameEngine.changedDisks.sink(in: .main) { [weak self] (changedDisks) in
             self?.changeDisks(at: changedDisks.coordinates, to: changedDisks.diskType, animated: false) { [weak self] _ in
                 DispatchQueue.global().async {
                     self?.gameEngine.nextMove()
@@ -352,11 +352,9 @@ extension Optional where Wrapped == Disk {
 
 extension Publisher where Failure == Never {
     
-    func sinkInMain(_ exec: @escaping (Output) -> Void) -> AnyCancellable {
-        sink { (output) in
-            DispatchQueue.main.async {
-                exec(output)
-            }
+    func sink(in queue: DispatchQueue, _ exec: @escaping (Output) -> Void) -> AnyCancellable {
+        receive(on: queue).sink { (output) in
+            exec(output)
         }
     }
     
