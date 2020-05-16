@@ -11,7 +11,7 @@ protocol GameEngineProtocol: AnyObject {
     func setPlayer(_ player: Player, for turn: Disk)
     func getPlayer(for turn: Disk) -> Player
     
-    func placeDiskAt(x: Int, y: Int) throws
+    func placeDiskAt(x: Int, y: Int)
     func nextMove()
     var isThinking: AnyPublisher<(turn: Disk, thinking: Bool), Never> { get }
     var changedDisks: AnyPublisher<(diskType: Disk, coordinates: [(x: Int, y: Int)]), Never> { get }
@@ -69,10 +69,8 @@ class ViewController: UIViewController {
             }
         }.store(in: &gameEngineCancellables)
         gameEngine.changedDisks.sink(in: .main) { [weak self] (changedDisks) in
-            self?.changeDisks(at: changedDisks.coordinates, to: changedDisks.diskType, animated: false) { [weak self] _ in
-                DispatchQueue.global().async {
-                    self?.gameEngine.nextMove()
-                }
+            self?.changeDisks(at: changedDisks.coordinates, to: changedDisks.diskType, animated: true) { [weak self] _ in
+                self?.gameEngine.nextMove()
             }
         }.store(in: &gameEngineCancellables)
         
@@ -89,9 +87,7 @@ class ViewController: UIViewController {
         
         if viewHasAppeared { return }
         viewHasAppeared = true
-        DispatchQueue.global().async {
-            self.gameEngine.nextMove()
-        }
+        gameEngine.nextMove()
     }
 }
 
@@ -156,6 +152,7 @@ extension ViewController {
 
 extension ViewController {
     func newGame() {
+        animationCanceller?.cancel()
         gameEngine.reset()
         boardView.reset(with: gameEngine.currentBoard)
         
@@ -190,9 +187,7 @@ extension ViewController {
                 preferredStyle: .alert
             )
             alertController.addAction(UIAlertAction(title: "Dismiss", style: .default) { [weak self] _ in
-                DispatchQueue.global().async {
-                    self?.gameEngine.nextMove()
-                }
+                self?.gameEngine.nextMove()
             })
             present(alertController, animated: true)
             
@@ -223,9 +218,7 @@ extension ViewController {
             guard let self = self else { return }
             
             self.newGame()
-            DispatchQueue.global().async {
-                self.gameEngine.nextMove()
-            }
+            self.gameEngine.nextMove()
         })
         present(alertController, animated: true)
     }
@@ -236,24 +229,15 @@ extension ViewController {
         try? saveGame()
         
         let player = Player(rawValue: sender.selectedSegmentIndex)!
-        DispatchQueue.global().async {
-            self.gameEngine.setPlayer(player, for: side)
-            self.gameEngine.nextMove()
-        }
+        self.gameEngine.setPlayer(player, for: side)
+        self.gameEngine.nextMove()
     }
 }
 
 extension ViewController: BoardViewDelegate {
     func boardView(_ boardView: BoardView, didSelectCellAtX x: Int, y: Int) {
         if isAnimating { return }
-        DispatchQueue.global().async {
-            do {
-                try self.gameEngine.placeDiskAt(x: x, y: y)
-                // TODO: Animating
-            } catch {
-                // doing nothing when an error occurs
-            }
-        }
+        gameEngine.placeDiskAt(x: x, y: y)
     }
 }
 

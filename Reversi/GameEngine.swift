@@ -26,6 +26,8 @@ private var totalNumberOnBoard: Int { width * height }
 
 final class GameEngine {
     
+    private let engineQueue = DispatchQueue(label: "GameEngine")
+    
     private let board: CurrentValueSubject<[Disk?], Never> = .init(.initialize())
     
     private let turn: CurrentValueSubject<Turn, Never> = .init(.validTurn(.dark))
@@ -47,7 +49,7 @@ final class GameEngine {
 
 extension GameEngine {
     
-    // TODO: private typealise Coordinate = (x: Int, y: Int)
+    // TODO: private typealias Coordinate = (x: Int, y: Int)
     private func flippedDiskCoordinatesByPlacingDisk(_ disk: Disk, at coordinate: (x: Int, y: Int)) -> [(Int, Int)] {
         let directions = [
             (x: -1, y: -1),
@@ -130,23 +132,24 @@ extension GameEngine {
         }
     }
     
-    private func placeDisk(_ disk: Disk, at coordinate: (x: Int, y: Int)) throws {
+    private func placeDisk(_ disk: Disk, at coordinate: (x: Int, y: Int)) {
         
-        let diskCoordinates = flippedDiskCoordinatesByPlacingDisk(disk, at: coordinate)
+        let diskCoordinates = self.flippedDiskCoordinatesByPlacingDisk(disk, at: coordinate)
         if diskCoordinates.isEmpty {
-            throw DiskPlacementError(disk: disk, x: coordinate.x, y: coordinate.y)
+            // TODO: Error Handling
+            return
         }
         
-        board.value[x: coordinate.x, y: coordinate.y] = disk
+        self.board.value[x: coordinate.x, y: coordinate.y] = disk
         
         for coordinate in diskCoordinates {
-            board.value[x: coordinate.0, y: coordinate.1]?.flip()
+            self.board.value[x: coordinate.0, y: coordinate.1]?.flip()
         }
         
-        toggleTurn()
+        self.toggleTurn()
         
         let changedDisks: (diskType: Disk, coordinates: [(x: Int, y: Int)]) = (disk, [coordinate] + diskCoordinates)
-        changed.send(changedDisks)
+        self.changed.send(changedDisks)
         
     }
     
@@ -164,13 +167,12 @@ extension GameEngine {
         let canceller = Canceller(cleanUp)
         thinkingCanceller[side] = canceller
         
-        Thread.sleep(forTimeInterval: 0.1)
-//        Thread.sleep(forTimeInterval: 2)
+        Thread.sleep(forTimeInterval: 2)
 
         if canceller.isCancelled { return }
         cleanUp()
         
-        try! placeDisk(side, at: (x, y))
+        placeDisk(side, at: (x, y))
         
     }
     
@@ -187,12 +189,15 @@ extension GameEngine: GameEngineProtocol {
     }
     
     func reset() {
+        thinkingCanceller.forEach { $0.value.cancel() }
         initialize()
     }
     
     func setPlayer(_ player: Player, for turn: Disk) {
-        thinkingCanceller[turn]?.cancel()
-        playerForTurn[turn] = player
+        engineQueue.sync {
+            self.thinkingCanceller[turn]?.cancel()
+            self.playerForTurn[turn] = player
+        }
     }
     
     func getPlayer(for turn: Disk) -> Player {
@@ -200,29 +205,33 @@ extension GameEngine: GameEngineProtocol {
     }
     
     /// - Throws: `DiskPlacementError` if the `disk` cannot be placed at (`x`, `y`).
-    func placeDiskAt(x: Int, y: Int) throws {
+    func placeDiskAt(x: Int, y: Int) {
         
-        guard case .validTurn(let disk) = turn.value else { return }
-        guard getPlayer(for: disk) == .manual else { return }
-        
-        try placeDisk(disk, at: (x, y))
+        engineQueue.async {
+            guard case .validTurn(let disk) = self.turn.value else { return }
+            guard self.getPlayer(for: disk) == .manual else { return }
+            
+            self.placeDisk(disk, at: (x, y))
+        }
         
     }
     
     func nextMove() {
         
-        switch turn.value {
-        case .validTurn(let side):
-            if getPlayer(for: side) == .computer {
-                placeDiskAutomatically(as: side)
+        engineQueue.async {
+            switch self.turn.value {
+            case .validTurn(let side):
+                if self.getPlayer(for: side) == .computer {
+                    self.placeDiskAutomatically(as: side)
+                }
+                
+            case .skippingTurn:
+                self.toggleTurn()
+                
+            case .finished:
+                break
+                
             }
-            
-        case .skippingTurn:
-            toggleTurn()
-            
-        case .finished:
-            break
-            
         }
         
     }
