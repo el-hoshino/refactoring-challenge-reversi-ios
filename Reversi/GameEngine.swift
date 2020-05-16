@@ -194,7 +194,8 @@ extension GameEngine: GameEngineProtocol {
         let canceller = Canceller(cleanUp)
         thinkingCanceller[turn] = canceller
         
-        Thread.sleep(forTimeInterval: 2)
+        Thread.sleep(forTimeInterval: 0.1)
+//        Thread.sleep(forTimeInterval: 2)
 
         if canceller.isCancelled { return }
         cleanUp()

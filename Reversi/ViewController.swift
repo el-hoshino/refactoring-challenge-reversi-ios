@@ -62,7 +62,8 @@ class ViewController: UIViewController {
             }
         }.store(in: &gameEngineCancellables)
         gameEngine.changedDisks.sinkInMain { [weak self] (changedDisks) in
-            self?.changeDisks(at: changedDisks.coordinates, to: changedDisks.diskType, animated: true) { [weak self] _ in
+            self?.changeDisks(at: changedDisks.coordinates, to: changedDisks.diskType, animated: false) { [weak self] _ in
+//            self?.changeDisks(at: changedDisks.coordinates, to: changedDisks.diskType, animated: true) { [weak self] _ in
                 DispatchQueue.global().async {
                     self?.gameEngine.nextMove()
                 }
