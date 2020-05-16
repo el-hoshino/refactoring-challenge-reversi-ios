@@ -82,7 +82,9 @@ class ViewController: UIViewController {
         
         if viewHasAppeared { return }
         viewHasAppeared = true
-        waitForPlayer()
+        DispatchQueue.global().async {
+            self.gameEngine.nextMove()
+        }
     }
 }
 
@@ -179,16 +181,6 @@ extension ViewController {
         try? saveGame()
     }
     
-    func waitForPlayer() {
-        guard let turn = self.turn else { return }
-        switch Player(rawValue: playerControls[turn.index].selectedSegmentIndex)! {
-        case .manual:
-            break
-        case .computer:
-            playTurnOfComputer()
-        }
-    }
-    
     func nextTurn() {
         guard var turn = self.turn else { return }
 
@@ -215,32 +207,10 @@ extension ViewController {
         } else {
             self.turn = turn
             updateMessageViews()
-            waitForPlayer()
+//            waitForPlayer()
         }
     }
     
-    func playTurnOfComputer() {
-        guard let turn = self.turn else { preconditionFailure() }
-        let (x, y) = validMoves(for: turn).randomElement()!
-
-        playerActivityIndicators[turn.index].startAnimating()
-        
-        let cleanUp: () -> Void = { [weak self] in
-            guard let self = self else { return }
-            self.playerActivityIndicators[turn.index].stopAnimating()
-            self.playerCancellers[turn] = nil
-        }
-        let canceller = Canceller(cleanUp)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
-            guard let self = self else { return }
-            if canceller.isCancelled { return }
-            cleanUp()
-            
-            try! self.gameEngine.placeDiskAt(x: x, y: y)
-        }
-        
-        playerCancellers[turn] = canceller
-    }
 }
 
 // MARK: Views
@@ -293,7 +263,9 @@ extension ViewController {
             }
             
             self.newGame()
-            self.waitForPlayer()
+            DispatchQueue.global().async {
+                self.gameEngine.nextMove()
+            }
         })
         present(alertController, animated: true)
     }
