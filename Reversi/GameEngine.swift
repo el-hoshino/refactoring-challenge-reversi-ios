@@ -193,7 +193,6 @@ extension GameEngine: GameEngineProtocol {
     func setPlayer(_ player: Player, for turn: Disk) {
         thinkingCanceller[turn]?.cancel()
         playerForTurn[turn] = player
-        nextMove()
     }
     
     func getPlayer(for turn: Disk) -> Player {
@@ -219,7 +218,6 @@ extension GameEngine: GameEngineProtocol {
         
     }
     
-    /// 次のターンがコンピューターなら自動で次のセルを置く
     func nextMove() {
         
         switch turn.value {
