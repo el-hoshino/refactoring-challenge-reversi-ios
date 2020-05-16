@@ -36,6 +36,13 @@ final class GameEngine {
     private let thinking: PassthroughSubject<(turn: Disk, thinking: Bool), Never> = .init()
     private let changed: PassthroughSubject<(diskType: Disk, coordinates: [(x: Int, y: Int)]), Never> = .init()
     
+    private func initialize() {
+        board = .initialize()
+        turn = .dark
+        playerForTurn = [:]
+        thinkingCanceller = [:]
+    }
+    
     func player(for turn: Disk) -> Player {
         return playerForTurn[turn] ?? .manual
     }
@@ -163,6 +170,10 @@ extension GameEngine: GameEngineProtocol {
         height
     }
     
+    func reset() {
+        initialize()
+    }
+    
     func set(_ turn: Disk, to player: Player) {
         setPlayer(player, for: turn)
     }
@@ -220,6 +231,10 @@ extension GameEngine: GameEngineProtocol {
     
     var changedDisks: AnyPublisher<(diskType: Disk, coordinates: [(x: Int, y: Int)]), Never> {
         changed.eraseToAnyPublisher()
+    }
+    
+    var currentTurn: Disk? {
+        turn
     }
     
     func count(of disk: Disk) -> Int {

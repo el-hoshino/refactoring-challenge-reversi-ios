@@ -6,6 +6,8 @@ protocol GameEngineProtocol: AnyObject {
     var gameBoardWidth: Int { get }
     var gameBoardHeight: Int { get }
     
+    func reset()
+    
     func set(_ turn: Disk, to player: Player)
     
     func diskAt(x: Int, y: Int) -> Disk?
