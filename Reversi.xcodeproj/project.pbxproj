@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		BF52C5AC247A2A31006AEDA0 /* TurnTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF52C5AB247A2A31006AEDA0 /* TurnTests.swift */; };
 		BF607B4A244C8A3D00DC5FC3 /* Player.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF607B49244C8A3D00DC5FC3 /* Player.swift */; };
 		BF6D42EC2443377700919812 /* GameEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF6D42EB2443377700919812 /* GameEngine.swift */; };
 		BF6D42EE24433F9600919812 /* GameEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF6D42ED24433F9600919812 /* GameEngineTests.swift */; };
@@ -36,6 +37,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		BF52C5AB247A2A31006AEDA0 /* TurnTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TurnTests.swift; sourceTree = "<group>"; };
 		BF607B49244C8A3D00DC5FC3 /* Player.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Player.swift; sourceTree = "<group>"; };
 		BF6D42EB2443377700919812 /* GameEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameEngine.swift; sourceTree = "<group>"; };
 		BF6D42ED24433F9600919812 /* GameEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameEngineTests.swift; sourceTree = "<group>"; };
@@ -146,6 +148,7 @@
 				D642BDCA23A9FE4700396732 /* ReversiTests.swift */,
 				D642BDCC23A9FE4700396732 /* Info.plist */,
 				BF6D42ED24433F9600919812 /* GameEngineTests.swift */,
+				BF52C5AB247A2A31006AEDA0 /* TurnTests.swift */,
 			);
 			path = ReversiTests;
 			sourceTree = "<group>";
@@ -269,6 +272,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BF52C5AC247A2A31006AEDA0 /* TurnTests.swift in Sources */,
 				D642BDCB23A9FE4700396732 /* ReversiTests.swift in Sources */,
 				BF6D42EE24433F9600919812 /* GameEngineTests.swift in Sources */,
 			);
