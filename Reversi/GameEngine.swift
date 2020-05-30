@@ -344,13 +344,7 @@ extension Array where Element == Disk? {
     
     func count(of disk: Disk) -> Int {
         
-        reduce(0) {
-            if $1 == disk {
-                return $0 + 1
-            } else {
-                return $0
-            }
-        }
+        filter({ $0 == disk }).count
         
     }
     
