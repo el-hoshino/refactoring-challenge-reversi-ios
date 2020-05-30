@@ -32,8 +32,8 @@ final class GameEngine {
     
     let turn: CurrentValueSubject<Turn, Never> = .init(.validTurn(.dark))
     
-    var playerForTurn: [Disk: Player] = [:]
-    var thinkingCanceller: [Disk: Canceller] = [:]
+    private(set) var playerForSide: [Disk: Player] = [:]
+    private(set) var thinkingCanceller: [Disk: Canceller] = [:]
     
     private let thinking: PassthroughSubject<(turn: Disk, thinking: Bool), Never> = .init()
     private let changed: PassthroughSubject<(diskType: Disk, coordinates: [(x: Int, y: Int)]), Never> = .init()
@@ -41,7 +41,7 @@ final class GameEngine {
     private func initialize() {
         board.send(.initialize())
         turn.send(.validTurn(.dark))
-        playerForTurn = [:]
+        playerForSide = [:]
         thinkingCanceller = [:]
     }
     
@@ -193,15 +193,15 @@ extension GameEngine: GameEngineProtocol {
         initialize()
     }
     
-    func setPlayer(_ player: Player, for turn: Disk) {
+    func setPlayer(_ player: Player, for side: Disk) {
         engineQueue.sync {
-            self.thinkingCanceller[turn]?.cancel()
-            self.playerForTurn[turn] = player
+            self.thinkingCanceller[side]?.cancel()
+            self.playerForSide[side] = player
         }
     }
     
-    func getPlayer(for turn: Disk) -> Player {
-        playerForTurn[turn] ?? .manual
+    func getPlayer(for side: Disk) -> Player {
+        playerForSide[side] ?? .manual
     }
     
     func placeDiskAt(x: Int, y: Int) {
