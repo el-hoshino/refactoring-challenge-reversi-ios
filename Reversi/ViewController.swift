@@ -198,9 +198,6 @@ extension ViewController: BoardViewDelegate {
 // MARK: Save and Load
 
 extension ViewController {
-    private var path: String {
-        (NSSearchPathForDirectoriesInDomains(.libraryDirectory, .userDomainMask, true).first! as NSString).appendingPathComponent("Game")
-    }
     
     func saveGame() throws {
         try gameEngine.saveGame()

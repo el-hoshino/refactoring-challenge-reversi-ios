@@ -269,12 +269,36 @@ extension GameEngine: GameEngineProtocol {
         }.eraseToAnyPublisher()
     }
     
+}
+
+extension GameEngine {
+    
+    private struct SaveData: Codable {
+        let turn: Turn
+        let playerForSide: [Disk: Player]
+        let board: [Disk?]
+    }
+    
+    private var saveDataURL: URL {
+        try! FileManager.default.url(for: .libraryDirectory, in: .userDomainMask, appropriateFor: nil, create: true).appendingPathComponent("Game", isDirectory: false)
+    }
+    
     func saveGame() throws {
-        // TODO
+        
+        let saveData = SaveData(turn: turn.value, playerForSide: playerForSide, board: board.value)
+        let data = try JSONEncoder().encode(saveData)
+        try data.write(to: saveDataURL)
+        
     }
     
     func loadGame() throws {
-        // TODO
+        
+        let data = try Data(contentsOf: saveDataURL)
+        let saveData = try JSONDecoder().decode(SaveData.self, from: data)
+        turn.value = saveData.turn
+        playerForSide = saveData.playerForSide
+        board.value = saveData.board
+        
     }
     
 }

@@ -16,6 +16,51 @@ enum Turn: Equatable {
     
 }
 
+extension Turn: Codable {
+    
+    private enum Key: String, Codable {
+        case validTurn
+        case skippingTurn
+        case finished
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.unkeyedContainer()
+        switch self {
+        case .validTurn(let disk):
+            try container.encode(Key.validTurn)
+            try container.encode(disk)
+            
+        case .skippingTurn(let disk):
+            try container.encode(Key.skippingTurn)
+            try container.encode(disk)
+            
+        case .finished(winner: let disk):
+            try container.encode(Key.finished)
+            try container.encode(disk)
+        }
+    }
+    
+    init(from decoder: Decoder) throws {
+        var container = try decoder.unkeyedContainer()
+        let key = try container.decode(Key.self)
+        switch key {
+        case .validTurn:
+            let disk = try container.decode(Disk.self)
+            self = .validTurn(disk)
+            
+        case .skippingTurn:
+            let disk = try container.decode(Disk.self)
+            self = .skippingTurn(disk)
+            
+        case .finished:
+            let disk = try container.decode(Disk?.self)
+            self = .finished(winner: disk)
+        }
+    }
+    
+}
+
 extension Turn {
     
     func composed() -> String {
