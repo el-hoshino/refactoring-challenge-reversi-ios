@@ -39,10 +39,7 @@ class ViewController: UIViewController {
     
     let gameEngine: GameEngineProtocol = GameEngine()
     private var gameEngineCancellables: Set<AnyCancellable> = []
-        
-    private var animationCanceller: Canceller?
-    private var isAnimating: Bool { animationCanceller != nil }
-        
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -95,71 +92,21 @@ class ViewController: UIViewController {
 
 extension ViewController {
     
-    func changeDisks(at coordinates: [(x: Int, y: Int)], to disk: Disk, animated: Bool, completion: ((Bool) -> Void)?) {
-        
-        if animated {
-            let cleanUp: () -> Void = { [weak self] in
-                self?.animationCanceller = nil
-            }
-            animationCanceller = Canceller(cleanUp)
-            animateSettingDisks(at: coordinates, to: disk) { [weak self] finished in
-                guard let self = self else { return }
-                guard let canceller = self.animationCanceller else { return }
-                if canceller.isCancelled { return }
-                cleanUp()
-
-                completion?(finished)
-            }
-        } else {
-            DispatchQueue.main.async { [weak self] in
-                guard let self = self else { return }
-                for (x, y) in coordinates {
-                    self.boardView.setDisk(disk, atX: x, y: y, animated: false)
-                }
-                completion?(true)
-            }
-        }
-        
-    }
-    
     func changeBoardDisks(at coordinates: [(x: Int, y: Int)], to disk: Disk, animated: Bool, completion: ((Bool) -> Void)?) {
         
-        changeDisks(at: coordinates, to: disk, animated: animated) { [weak self] (_) in
+        boardView.changeDisks(at: coordinates, to: disk, animated: animated) { [weak self] finished in
             try? self?.saveGame()
             completion?(finished)
         }
         
     }
     
-    private func animateSettingDisks<C: Collection>(at coordinates: C, to disk: Disk, completion: @escaping (Bool) -> Void)
-        where C.Element == (Int, Int)
-    {
-        guard let (x, y) = coordinates.first else {
-            completion(true)
-            return
-        }
-        
-        let animationCanceller = self.animationCanceller!
-        boardView.setDisk(disk, atX: x, y: y, animated: true) { [weak self] finished in
-            guard let self = self else { return }
-            if animationCanceller.isCancelled { return }
-            if finished {
-                self.animateSettingDisks(at: coordinates.dropFirst(), to: disk, completion: completion)
-            } else {
-                for (x, y) in coordinates {
-                    self.boardView.setDisk(disk, atX: x, y: y, animated: false)
-                }
-                completion(false)
-            }
-        }
-    }
 }
 
 // MARK: Game management
 
 extension ViewController {
     func newGame() {
-        animationCanceller?.cancel()
         gameEngine.reset()
         boardView.reset(with: gameEngine.currentBoard)
         
@@ -243,7 +190,7 @@ extension ViewController {
 
 extension ViewController: BoardViewDelegate {
     func boardView(_ boardView: BoardView, didSelectCellAtX x: Int, y: Int) {
-        if isAnimating { return }
+        if boardView.isAnimating { return }
         gameEngine.placeDiskAt(x: x, y: y)
     }
 }
