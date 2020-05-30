@@ -206,6 +206,12 @@ extension ViewController {
     func loadGame() throws {
         try gameEngine.loadGame()
         boardView.reset(with: gameEngine.currentBoard)
+        
+        for (index, playerControl) in playerControls.enumerated() {
+            let side: Disk = Disk(index: index)
+            playerControl.selectedSegmentIndex = gameEngine.getPlayer(for: side).rawValue
+        }
+        
     }
     
     enum FileIOError: Error {
