@@ -69,7 +69,7 @@ class ViewController: UIViewController {
             }
         }.store(in: &gameEngineCancellables)
         gameEngine.changedDisks.sink(in: .main) { [weak self] (changedDisks) in
-            self?.changeDisks(at: changedDisks.coordinates, to: changedDisks.diskType, animated: true) { [weak self] _ in
+            self?.changeBoardDisks(at: changedDisks.coordinates, to: changedDisks.diskType, animated: true) { [weak self] _ in
                 self?.gameEngine.nextMove()
             }
         }.store(in: &gameEngineCancellables)
@@ -109,7 +109,6 @@ extension ViewController {
                 cleanUp()
 
                 completion?(finished)
-                try? self.saveGame()
             }
         } else {
             DispatchQueue.main.async { [weak self] in
@@ -118,8 +117,16 @@ extension ViewController {
                     self.boardView.setDisk(disk, atX: x, y: y, animated: false)
                 }
                 completion?(true)
-                try? self.saveGame()
             }
+        }
+        
+    }
+    
+    func changeBoardDisks(at coordinates: [(x: Int, y: Int)], to disk: Disk, animated: Bool, completion: ((Bool) -> Void)?) {
+        
+        changeDisks(at: coordinates, to: disk, animated: animated) { [weak self] (_) in
+            try? self?.saveGame()
+            completion?(finished)
         }
         
     }
